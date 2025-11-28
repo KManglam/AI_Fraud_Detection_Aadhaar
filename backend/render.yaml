@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: aadhaar-auth-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn aadhaar_system.wsgi:application"
+    healthCheckPath: /health/
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: PYTHON_VERSION
+        value: "3.11.6"
+      # Supabase Database
+      - key: DATABASE_URL
+        sync: false
+      # API Keys
+      - key: GEMINI_API_KEY
+        sync: false
+      # Supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: "aadhaar-documents"
+      # CORS
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://aadhar-auth-system.vercel.app"
+      # Superuser (auto-created on first deploy)
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      - key: DJANGO_SUPERUSER_NAME
+        value: "Admin User"

@@ -18,6 +18,10 @@ class CustomUser(AbstractUser):
     # Profile settings
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
     
+    # Supabase integration
+    supabase_id = models.CharField(max_length=255, unique=True, null=True, blank=True,
+                                   help_text="Supabase Auth user UUID")
+    
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email', 'name']
     

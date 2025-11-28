@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api` 
+  : 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -74,19 +76,27 @@ api.interceptors.response.use(
     }
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {
+      // Use Supabase to refresh token
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = 'https://xnrnhgzdckbrezyudipf.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhucm5oZ3pkY2ticmV6eXVkaXBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQzNDEsImV4cCI6MjA3OTkwMDM0MX0.CCxeKMFlx0BMREgXqbC8QLmXisOaeb44YlfzwWEMdlI';
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      const { data, error: refreshError } = await supabase.auth.refreshSession({
         refresh_token: refreshToken
       });
       
-      if (response.data.success) {
-        const newAccessToken = response.data.tokens.access_token;
+      if (data?.session) {
+        const newAccessToken = data.session.access_token;
         localStorage.setItem('access_token', newAccessToken);
-        localStorage.setItem('refresh_token', response.data.tokens.refresh_token);
+        localStorage.setItem('refresh_token', data.session.refresh_token);
         
         processQueue(null, newAccessToken);
         
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api.request(originalRequest);
+      } else {
+        throw refreshError || new Error('Failed to refresh');
       }
     } catch (refreshError) {
       processQueue(refreshError, null);

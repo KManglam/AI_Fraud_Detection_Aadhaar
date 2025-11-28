@@ -1,6 +1,8 @@
 """
 REST API views for documents app
+Supports both local and Supabase Storage
 """
+import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -20,6 +22,9 @@ from .serializers import (
 )
 from .preprocessing import ImagePreprocessor
 from .gemini_service import GeminiService
+from .storage_service import get_storage_service
+
+logger = logging.getLogger(__name__)
 
 
 class AadhaarDocumentViewSet(viewsets.ModelViewSet):

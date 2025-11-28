@@ -1,46 +1,108 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authAPI } from '../services/auth';
+import { authAPI, supabaseAuthAPI } from '../services/auth';
+import { supabase } from '../services/supabase';
 
 const AuthContext = createContext(null);
+
+// Use Supabase Auth
+const USE_SUPABASE = true;
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Check for existing session on mount
+    // Listen for Supabase auth state changes
     useEffect(() => {
-        const initAuth = async () => {
-            const token = localStorage.getItem('access_token');
-            if (token) {
-                try {
-                    const response = await authAPI.getMe();
-                    if (response.success) {
-                        setUser(response.user);
-                        setIsAuthenticated(true);
-                    } else {
-                        // Token invalid, clear storage
+        if (!USE_SUPABASE) {
+            // Legacy auth initialization
+            const initLegacyAuth = async () => {
+                const token = localStorage.getItem('access_token');
+                if (token) {
+                    try {
+                        const response = await authAPI.getMe();
+                        if (response.success) {
+                            setUser(response.user);
+                            setIsAuthenticated(true);
+                        } else {
+                            localStorage.removeItem('access_token');
+                            localStorage.removeItem('refresh_token');
+                        }
+                    } catch (error) {
+                        console.error('Auth check failed:', error);
                         localStorage.removeItem('access_token');
                         localStorage.removeItem('refresh_token');
                     }
-                } catch (error) {
-                    console.error('Auth check failed:', error);
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
                 }
+                setLoading(false);
+            };
+            initLegacyAuth();
+            return;
+        }
+
+        // Supabase auth initialization
+        const initSupabaseAuth = async () => {
+            try {
+                // Get initial session
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (session?.user) {
+                    setUser({
+                        id: session.user.id,
+                        email: session.user.email,
+                        name: session.user.user_metadata?.name || '',
+                        username: session.user.email?.split('@')[0] || '',
+                    });
+                    setIsAuthenticated(true);
+                    localStorage.setItem('access_token', session.access_token);
+                    localStorage.setItem('refresh_token', session.refresh_token);
+                }
+            } catch (error) {
+                console.error('Supabase auth check failed:', error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
-        initAuth();
+        initSupabaseAuth();
+
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                console.log('Auth state changed:', event);
+                
+                if (event === 'SIGNED_IN' && session?.user) {
+                    setUser({
+                        id: session.user.id,
+                        email: session.user.email,
+                        name: session.user.user_metadata?.name || '',
+                        username: session.user.email?.split('@')[0] || '',
+                    });
+                    setIsAuthenticated(true);
+                    localStorage.setItem('access_token', session.access_token);
+                    localStorage.setItem('refresh_token', session.refresh_token);
+                } else if (event === 'SIGNED_OUT') {
+                    setUser(null);
+                    setIsAuthenticated(false);
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                } else if (event === 'TOKEN_REFRESHED' && session) {
+                    localStorage.setItem('access_token', session.access_token);
+                    localStorage.setItem('refresh_token', session.refresh_token);
+                }
+            }
+        );
+
+        // Cleanup subscription
+        return () => {
+            subscription?.unsubscribe();
+        };
     }, []);
 
-    const login = useCallback(async (usernameOrEmail, password) => {
+    const login = useCallback(async (emailOrUsername, password) => {
         try {
-            const response = await authAPI.login(usernameOrEmail, password);
+            const response = await authAPI.login(emailOrUsername, password);
             if (response.success) {
-                localStorage.setItem('access_token', response.tokens.access_token);
-                localStorage.setItem('refresh_token', response.tokens.refresh_token);
                 setUser(response.user);
                 setIsAuthenticated(true);
                 return { success: true };
@@ -50,7 +112,7 @@ export function AuthProvider({ children }) {
             console.error('Login error:', error);
             return { 
                 success: false, 
-                message: error.response?.data?.message || 'Login failed. Please try again.' 
+                message: error.response?.data?.message || error.message || 'Login failed. Please try again.' 
             };
         }
     }, []);
@@ -59,8 +121,14 @@ export function AuthProvider({ children }) {
         try {
             const response = await authAPI.register(userData);
             if (response.success) {
-                localStorage.setItem('access_token', response.tokens.access_token);
-                localStorage.setItem('refresh_token', response.tokens.refresh_token);
+                // Check if email verification is needed
+                if (response.needsEmailVerification) {
+                    return { 
+                        success: true, 
+                        needsEmailVerification: true,
+                        message: response.message 
+                    };
+                }
                 setUser(response.user);
                 setIsAuthenticated(true);
                 return { success: true };
@@ -90,14 +158,8 @@ export function AuthProvider({ children }) {
 
     const refreshToken = useCallback(async () => {
         try {
-            const refreshTokenValue = localStorage.getItem('refresh_token');
-            if (!refreshTokenValue) {
-                throw new Error('No refresh token');
-            }
-            const response = await authAPI.refreshToken(refreshTokenValue);
+            const response = await authAPI.refreshToken();
             if (response.success) {
-                localStorage.setItem('access_token', response.tokens.access_token);
-                localStorage.setItem('refresh_token', response.tokens.refresh_token);
                 return true;
             }
             return false;

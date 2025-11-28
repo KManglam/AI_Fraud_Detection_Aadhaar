@@ -23,10 +23,23 @@ class AadhaarDocument(models.Model):
         help_text="Owner of the document"
     )
     
-    # File fields
+    # File fields (local storage)
     original_file = models.ImageField(upload_to='raw/%Y/%m/%d/')
     preprocessed_file = models.ImageField(upload_to='processed/%Y/%m/%d/', null=True, blank=True)
     thumbnail = models.ImageField(upload_to='thumbnails/%Y/%m/%d/', null=True, blank=True)
+    
+    # Supabase Storage fields
+    STORAGE_TYPE_CHOICES = [
+        ('local', 'Local Storage'),
+        ('supabase', 'Supabase Storage'),
+    ]
+    storage_type = models.CharField(max_length=20, choices=STORAGE_TYPE_CHOICES, default='local')
+    supabase_original_path = models.CharField(max_length=500, null=True, blank=True,
+                                              help_text="Path in Supabase Storage for original file")
+    supabase_processed_path = models.CharField(max_length=500, null=True, blank=True,
+                                               help_text="Path in Supabase Storage for processed file")
+    supabase_thumbnail_path = models.CharField(max_length=500, null=True, blank=True,
+                                               help_text="Path in Supabase Storage for thumbnail")
     
     # Metadata
     file_name = models.CharField(max_length=255)
@@ -53,6 +66,33 @@ class AadhaarDocument(models.Model):
     
     def __str__(self):
         return f"{self.file_name} - {self.status}"
+    
+    def get_original_url(self) -> str:
+        """Get URL for original file (handles both local and Supabase storage)"""
+        if self.storage_type == 'supabase' and self.supabase_original_path:
+            from .storage_service import get_storage_service
+            return get_storage_service().get_file_url(self.supabase_original_path)
+        elif self.original_file:
+            return self.original_file.url
+        return ''
+    
+    def get_processed_url(self) -> str:
+        """Get URL for processed file"""
+        if self.storage_type == 'supabase' and self.supabase_processed_path:
+            from .storage_service import get_storage_service
+            return get_storage_service().get_file_url(self.supabase_processed_path)
+        elif self.preprocessed_file:
+            return self.preprocessed_file.url
+        return ''
+    
+    def get_thumbnail_url(self) -> str:
+        """Get URL for thumbnail"""
+        if self.storage_type == 'supabase' and self.supabase_thumbnail_path:
+            from .storage_service import get_storage_service
+            return get_storage_service().get_file_url(self.supabase_thumbnail_path)
+        elif self.thumbnail:
+            return self.thumbnail.url
+        return ''
 
 
 class DocumentMetadata(models.Model):

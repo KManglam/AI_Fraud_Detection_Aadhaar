@@ -338,6 +338,20 @@ function Dashboard() {
             const result = await documentAPI.uploadDocuments(files, false);
             showNotification(`Successfully uploaded ${result.count || files.length} file(s)!`, 'success');
             
+            // Optimistically update UI with new documents
+            if (result.documents && result.documents.length > 0) {
+                // Update recent docs list
+                setRecentDocs(prev => [...result.documents, ...prev].slice(0, 5));
+                
+                // Update stats
+                setStats(prev => ({
+                    ...prev,
+                    total: prev.total + result.documents.length,
+                    uploaded: prev.uploaded + result.documents.length,
+                    processing: prev.processing // Processing count stays same until analysis starts
+                }));
+            }
+            
             await fetchDashboardData();
             
             // Auto-analyze

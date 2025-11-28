@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import AuthModal from '../AuthModal';
 import { 
     LogoIcon, 
     DashboardIcon, 
@@ -12,14 +13,16 @@ import {
     MenuIcon,
     CloseIcon,
     LogoutIcon,
-    LoginIcon
+    LoginIcon,
+    HomeIcon
 } from '../icons/index';
 
 const navItems = [
-    { path: '/', label: 'Dashboard', icon: DashboardIcon },
-    { path: '/documents', label: 'Documents', icon: DocumentsIcon },
-    { path: '/verification-results', label: 'Verification', icon: VerificationIcon },
-    { path: '/documentation', label: 'Documentation', icon: DocsIcon },
+    { path: '/welcome', label: 'Home', icon: HomeIcon },
+    { path: '/', label: 'Dashboard', icon: DashboardIcon, exact: true, protected: true },
+    { path: '/documents', label: 'Documents', icon: DocumentsIcon, protected: true },
+    { path: '/verification-results', label: 'Verification', icon: VerificationIcon, protected: true },
+    { path: '/documentation', label: 'Docs', icon: DocsIcon },
     { path: '/about', label: 'About', icon: AboutIcon },
 ];
 
@@ -29,6 +32,14 @@ function Header() {
     const { user, isAuthenticated, logout } = useAuth();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+
+    const handleNavClick = (e, item) => {
+        if (item.protected && !isAuthenticated) {
+            e.preventDefault();
+            setShowAuthModal(true);
+        }
+    };
 
     const handleLogout = async () => {
         await logout();
@@ -36,8 +47,8 @@ function Header() {
         navigate('/');
     };
 
-    const isActive = (path) => {
-        if (path === '/') return location.pathname === '/';
+    const isActive = (path, exact = false) => {
+        if (exact || path === '/') return location.pathname === path;
         return location.pathname.startsWith(path);
     };
 
@@ -65,11 +76,12 @@ function Header() {
                     <nav className="hidden md:flex items-center gap-1 bg-secondary-50 rounded-full px-2 py-1.5 border border-secondary-200">
                         {navItems.map((item) => {
                             const Icon = item.icon;
-                            const active = isActive(item.path);
+                            const active = isActive(item.path, item.exact);
                             return (
                                 <Link
                                     key={item.path}
                                     to={item.path}
+                                    onClick={(e) => handleNavClick(e, item)}
                                     className={`
                                         relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
                                         transition-all duration-200
@@ -175,12 +187,19 @@ function Header() {
                         <nav className="px-4 py-3 space-y-1">
                             {navItems.map((item) => {
                                 const Icon = item.icon;
-                                const active = isActive(item.path);
+                                const active = isActive(item.path, item.exact);
                                 return (
                                     <Link
                                         key={item.path}
                                         to={item.path}
-                                        onClick={() => setMobileMenuOpen(false)}
+                                        onClick={(e) => {
+                                            if (item.protected && !isAuthenticated) {
+                                                e.preventDefault();
+                                                setShowAuthModal(true);
+                                            } else {
+                                                setMobileMenuOpen(false);
+                                            }
+                                        }}
                                         className={`
                                             flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
                                             transition-all duration-200
@@ -244,6 +263,13 @@ function Header() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            
+            {/* Auth Modal for protected routes */}
+            <AuthModal 
+                isOpen={showAuthModal} 
+                onClose={() => setShowAuthModal(false)}
+                message="Please login to access this feature"
+            />
         </header>
     );
 }

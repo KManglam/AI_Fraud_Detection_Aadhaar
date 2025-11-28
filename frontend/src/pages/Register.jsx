@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { LogoIcon, EyeIcon, EyeOffIcon, ErrorIcon } from '../components/icons/index';
@@ -19,6 +19,22 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
+// Email validation regex
+const isValidEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+};
+
+// Format email input (lowercase, trim)
+const formatEmail = (email) => {
+    return email.toLowerCase().trim();
+};
+
+// Format username (lowercase, trim, remove spaces)
+const formatUsername = (username) => {
+    return username.toLowerCase().trim().replace(/\s/g, '');
+};
+
 function Register() {
     const [formData, setFormData] = useState({
         name: '',
@@ -32,20 +48,51 @@ function Register() {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     
-    const { register } = useAuth();
+    const { register, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    const from = location.state?.from?.pathname || '/';
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate(from === '/register' ? '/' : from, { replace: true });
+        }
+    }, [isAuthenticated, navigate, from]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        let formattedValue = value;
+        
+        // Format email
+        if (name === 'email') {
+            formattedValue = formatEmail(value);
+        }
+        
+        // Format username (no spaces, lowercase)
+        if (name === 'username') {
+            formattedValue = formatUsername(value);
+        }
+        
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: formattedValue
         }));
-        // Clear specific field error
+        
+        // Clear specific field error and validate in real-time
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
                 [name]: null
+            }));
+        }
+        
+        // Real-time email validation
+        if (name === 'email' && formattedValue.length > 3 && !isValidEmail(formattedValue)) {
+            setErrors(prev => ({
+                ...prev,
+                email: 'Please enter a valid email address'
             }));
         }
     };
@@ -65,8 +112,8 @@ function Register() {
         
         if (!formData.email.trim()) {
             newErrors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Please enter a valid email';
+        } else if (!isValidEmail(formData.email)) {
+            newErrors.email = 'Please enter a valid email address (e.g., user@example.com)';
         }
         
         if (!formData.password) {

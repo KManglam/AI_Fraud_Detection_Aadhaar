@@ -56,6 +56,7 @@ class AadhaarDocumentSerializer(serializers.ModelSerializer):
             'error_message',
             'batch_id',
             'batch_position',
+            'storage_type',
             'metadata',
         ]
         read_only_fields = [
@@ -64,33 +65,45 @@ class AadhaarDocumentSerializer(serializers.ModelSerializer):
             'processed_at',
             'preprocessed_file',
             'thumbnail',
+            'storage_type',
         ]
     
     def get_original_file_url(self, obj):
-        """Get full URL for original file"""
-        if obj.original_file:
+        """Get full URL for original file (supports both local and Supabase storage)"""
+        url = obj.get_original_url()
+        if url:
+            # If it's a Supabase URL (starts with http), return as-is
+            if url.startswith('http'):
+                return url
+            # For local URLs, build absolute URI
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.original_file.url)
-            return obj.original_file.url
+                return request.build_absolute_uri(url)
+            return url
         return None
     
     def get_preprocessed_file_url(self, obj):
         """Get full URL for preprocessed file"""
-        if obj.preprocessed_file:
+        url = obj.get_processed_url()
+        if url:
+            if url.startswith('http'):
+                return url
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.preprocessed_file.url)
-            return obj.preprocessed_file.url
+                return request.build_absolute_uri(url)
+            return url
         return None
     
     def get_thumbnail_url(self, obj):
         """Get full URL for thumbnail"""
-        if obj.thumbnail:
+        url = obj.get_thumbnail_url()
+        if url:
+            if url.startswith('http'):
+                return url
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.thumbnail.url)
-            return obj.thumbnail.url
+                return request.build_absolute_uri(url)
+            return url
         return None
 
 
