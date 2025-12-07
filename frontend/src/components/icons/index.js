@@ -397,3 +397,437 @@ export const HomeIcon = ({ size = 24, className = '' }) => (
         <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/>
     </svg>
 );
+
+// ===== AADHAAR THEMED ICONS =====
+
+// Indian Tricolor Stripe
+export const TricolorStripe = ({ width = 200, height = 24, className = '' }) => (
+    <svg width={width} height={height} viewBox="0 0 200 24" fill="none" className={className}>
+        <rect x="0" y="0" width="200" height="8" fill="#FF671F" rx="4" ry="4"/>
+        <rect x="20" y="8" width="160" height="8" fill="#FFFFFF" stroke="#E5E5E5" strokeWidth="0.5"/>
+        <rect x="40" y="16" width="120" height="8" fill="#046A38" rx="4" ry="4"/>
+    </svg>
+);
+
+// UIDAI Aadhaar Logo (Sunrise Fingerprint)
+export const AadhaarLogo = ({ size = 48, className = '' }) => (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+        {/* Sun Rays (Yellow/Orange) */}
+        <g fill="none" stroke="#F4B400" strokeWidth="3" strokeLinecap="round">
+            <line x1="32" y1="6" x2="32" y2="2"/>
+            <line x1="22" y1="8" x2="18" y2="4"/>
+            <line x1="42" y1="8" x2="46" y2="4"/>
+            <line x1="14" y1="14" x2="10" y2="10"/>
+            <line x1="50" y1="14" x2="54" y2="10"/>
+            <line x1="10" y1="24" x2="6" y2="22"/>
+            <line x1="54" y1="24" x2="58" y2="22"/>
+        </g>
+        
+        {/* Sun Arc (Yellow/Orange) */}
+        <path d="M10 32a22 16 0 0 1 44 0" fill="none" stroke="#F4B400" strokeWidth="3" strokeLinecap="round"/>
+        
+        {/* Fingerprint Lines (Red/Saffron) */}
+        <g fill="none" stroke="#E64A19" strokeWidth="3" strokeLinecap="round">
+            <path d="M16 36a16 12 0 0 1 32 0"/>
+            <path d="M20 40a12 9 0 0 1 24 0"/>
+            <path d="M24 44a8 6 0 0 1 16 0"/>
+            <path d="M28 48a4 3 0 0 1 8 0"/>
+        </g>
+        
+        {/* Base Bar (Red/Saffron) */}
+        <rect x="14" y="52" width="36" height="5" rx="3" fill="#E64A19"/>
+    </svg>
+);
+
+// Ashoka Pillar
+export const AshokaEmblem = ({ size = 48, className = '' }) => (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+        <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Base */}
+            <rect x="6" y="52" width="52" height="4" rx="1"/>
+            <rect x="12" y="48" width="40" height="4" rx="1"/>
+            {/* Column */}
+            <rect x="20" y="16" width="24" height="32" rx="2"/>
+            {/* Fluting lines */}
+            <line x1="26" y1="18" x2="26" y2="46"/>
+            <line x1="32" y1="18" x2="32" y2="46"/>
+            <line x1="38" y1="18" x2="38" y2="46"/>
+            {/* Capital */}
+            <rect x="16" y="12" width="32" height="6" rx="2"/>
+            <line x1="14" y1="12" x2="50" y2="12"/>
+        </g>
+    </svg>
+);
+
+// QR Code Pattern
+export const QRCodePattern = ({ size = 48, className = '' }) => (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className}>
+        <rect width="48" height="48" fill="white" rx="4"/>
+        {/* Corner squares */}
+        <rect x="4" y="4" width="12" height="12" fill="#1a1a1a"/>
+        <rect x="6" y="6" width="8" height="8" fill="white"/>
+        <rect x="8" y="8" width="4" height="4" fill="#1a1a1a"/>
+        
+        <rect x="32" y="4" width="12" height="12" fill="#1a1a1a"/>
+        <rect x="34" y="6" width="8" height="8" fill="white"/>
+        <rect x="36" y="8" width="4" height="4" fill="#1a1a1a"/>
+        
+        <rect x="4" y="32" width="12" height="12" fill="#1a1a1a"/>
+        <rect x="6" y="34" width="8" height="8" fill="white"/>
+        <rect x="8" y="36" width="4" height="4" fill="#1a1a1a"/>
+        
+        {/* Data pattern */}
+        <rect x="20" y="4" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="24" y="8" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="20" y="12" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="4" y="20" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="12" y="20" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="20" y="20" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="28" y="20" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="36" y="20" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="20" y="28" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="28" y="28" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="36" y="28" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="20" y="36" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="28" y="36" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="36" y="36" width="4" height="4" fill="#1a1a1a"/>
+        <rect x="40" y="40" width="4" height="4" fill="#1a1a1a"/>
+    </svg>
+);
+
+// Aadhaar Card Illustration (Front Side)
+export const AadhaarCardFront = ({ width = 320, height = 200, className = '' }) => (
+    <svg width={width} height={height} viewBox="0 0 320 200" fill="none" className={className}>
+        <defs>
+            <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fafafa"/>
+                <stop offset="100%" stopColor="#f0f0f0"/>
+            </linearGradient>
+            <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.15"/>
+            </filter>
+        </defs>
+        
+        {/* Card background */}
+        <rect width="320" height="200" rx="12" fill="url(#cardBg)" filter="url(#cardShadow)"/>
+        <rect width="320" height="200" rx="12" fill="none" stroke="#e0e0e0" strokeWidth="1"/>
+        
+        {/* Tricolor stripe at top */}
+        <rect x="80" y="12" width="160" height="6" rx="3" fill="#FF671F"/>
+        <rect x="100" y="20" width="120" height="5" rx="2.5" fill="#FFFFFF" stroke="#ddd" strokeWidth="0.5"/>
+        <rect x="120" y="27" width="80" height="5" rx="2.5" fill="#046A38"/>
+        
+        {/* Government emblem - Ashoka Pillar */}
+        <g transform="translate(20, 8) scale(0.55)">
+            <g fill="none" stroke="#1a365d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="52" width="52" height="4" rx="1"/>
+                <rect x="12" y="48" width="40" height="4" rx="1"/>
+                <rect x="20" y="16" width="24" height="32" rx="2"/>
+                <line x1="26" y1="18" x2="26" y2="46"/>
+                <line x1="32" y1="18" x2="32" y2="46"/>
+                <line x1="38" y1="18" x2="38" y2="46"/>
+                <rect x="16" y="12" width="32" height="6" rx="2"/>
+                <line x1="14" y1="12" x2="50" y2="12"/>
+            </g>
+        </g>
+        
+        {/* Aadhaar Logo - Sunrise Fingerprint (top right) */}
+        <g transform="translate(262, 8) scale(0.55)">
+            {/* Sun Rays */}
+            <g fill="none" stroke="#F4B400" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="32" y1="6" x2="32" y2="2"/>
+                <line x1="22" y1="8" x2="18" y2="4"/>
+                <line x1="42" y1="8" x2="46" y2="4"/>
+                <line x1="14" y1="14" x2="10" y2="10"/>
+                <line x1="50" y1="14" x2="54" y2="10"/>
+                <line x1="10" y1="24" x2="6" y2="22"/>
+                <line x1="54" y1="24" x2="58" y2="22"/>
+            </g>
+            {/* Sun Arc */}
+            <path d="M10 32a22 16 0 0 1 44 0" fill="none" stroke="#F4B400" strokeWidth="2.5" strokeLinecap="round"/>
+            {/* Fingerprint Lines */}
+            <g fill="none" stroke="#E64A19" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M16 36a16 12 0 0 1 32 0"/>
+                <path d="M20 40a12 9 0 0 1 24 0"/>
+                <path d="M24 44a8 6 0 0 1 16 0"/>
+                <path d="M28 48a4 3 0 0 1 8 0"/>
+            </g>
+            {/* Base Bar */}
+            <rect x="14" y="52" width="36" height="4" rx="2" fill="#E64A19"/>
+        </g>
+        
+        {/* "GOVERNMENT OF INDIA" text placeholder */}
+        <rect x="90" y="40" width="140" height="8" rx="2" fill="#1a365d" opacity="0.6"/>
+        
+        {/* Photo placeholder */}
+        <rect x="20" y="70" width="70" height="85" rx="6" fill="#e5e7eb"/>
+        <circle cx="55" cy="95" r="20" fill="#d1d5db"/>
+        <ellipse cx="55" cy="135" rx="25" ry="15" fill="#d1d5db"/>
+        
+        {/* Info lines */}
+        <rect x="100" y="75" width="120" height="8" rx="2" fill="#9ca3af"/>
+        <rect x="100" y="90" width="90" height="6" rx="2" fill="#d1d5db"/>
+        <rect x="100" y="105" width="100" height="6" rx="2" fill="#d1d5db"/>
+        <rect x="100" y="120" width="80" height="6" rx="2" fill="#d1d5db"/>
+        
+        {/* QR Code */}
+        <g transform="translate(230, 70)">
+            <rect width="70" height="70" rx="4" fill="white" stroke="#e0e0e0"/>
+            <rect x="8" y="8" width="16" height="16" fill="#1a1a1a"/>
+            <rect x="10" y="10" width="12" height="12" fill="white"/>
+            <rect x="12" y="12" width="8" height="8" fill="#1a1a1a"/>
+            <rect x="46" y="8" width="16" height="16" fill="#1a1a1a"/>
+            <rect x="48" y="10" width="12" height="12" fill="white"/>
+            <rect x="50" y="12" width="8" height="8" fill="#1a1a1a"/>
+            <rect x="8" y="46" width="16" height="16" fill="#1a1a1a"/>
+            <rect x="10" y="48" width="12" height="12" fill="white"/>
+            <rect x="12" y="50" width="8" height="8" fill="#1a1a1a"/>
+            <rect x="28" y="28" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="36" y="28" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="28" y="36" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="46" y="46" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="54" y="46" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="46" y="54" width="6" height="6" fill="#1a1a1a"/>
+        </g>
+        
+        {/* Aadhaar Number */}
+        <text x="160" y="160" textAnchor="middle" fill="#1a1a1a" fontSize="18" fontFamily="monospace" fontWeight="bold">
+            XXXX XXXX XXXX
+        </text>
+        
+        {/* Red line at bottom */}
+        <rect x="20" y="175" width="280" height="3" rx="1.5" fill="#dc2626"/>
+        
+        {/* Footer text */}
+        <rect x="80" y="185" width="160" height="6" rx="2" fill="#dc2626" opacity="0.7"/>
+    </svg>
+);
+
+// Aadhaar Card Illustration (Back Side)
+export const AadhaarCardBack = ({ width = 320, height = 200, className = '' }) => (
+    <svg width={width} height={height} viewBox="0 0 320 200" fill="none" className={className}>
+        <defs>
+            <linearGradient id="cardBgBack" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fafafa"/>
+                <stop offset="100%" stopColor="#f0f0f0"/>
+            </linearGradient>
+        </defs>
+        
+        {/* Card background */}
+        <rect width="320" height="200" rx="12" fill="url(#cardBgBack)"/>
+        <rect width="320" height="200" rx="12" fill="none" stroke="#e0e0e0" strokeWidth="1"/>
+        
+        {/* Tricolor stripe */}
+        <rect x="80" y="12" width="160" height="6" rx="3" fill="#FF671F"/>
+        <rect x="100" y="20" width="120" height="5" rx="2.5" fill="#FFFFFF" stroke="#ddd" strokeWidth="0.5"/>
+        <rect x="120" y="27" width="80" height="5" rx="2.5" fill="#046A38"/>
+        
+        {/* UIDAI text placeholder */}
+        <rect x="60" y="45" width="200" height="8" rx="2" fill="#1a365d" opacity="0.5"/>
+        
+        {/* Address section */}
+        <text x="20" y="75" fill="#6b7280" fontSize="10" fontWeight="bold">ADDRESS:</text>
+        <rect x="80" y="68" width="150" height="6" rx="2" fill="#d1d5db"/>
+        <rect x="80" y="80" width="130" height="6" rx="2" fill="#d1d5db"/>
+        <rect x="80" y="92" width="140" height="6" rx="2" fill="#d1d5db"/>
+        <rect x="80" y="104" width="100" height="6" rx="2" fill="#d1d5db"/>
+        
+        {/* QR Code */}
+        <g transform="translate(230, 60)">
+            <rect width="70" height="70" rx="4" fill="white" stroke="#e0e0e0"/>
+            <rect x="8" y="8" width="16" height="16" fill="#1a1a1a"/>
+            <rect x="10" y="10" width="12" height="12" fill="white"/>
+            <rect x="12" y="12" width="8" height="8" fill="#1a1a1a"/>
+            <rect x="46" y="8" width="16" height="16" fill="#1a1a1a"/>
+            <rect x="48" y="10" width="12" height="12" fill="white"/>
+            <rect x="50" y="12" width="8" height="8" fill="#1a1a1a"/>
+            <rect x="8" y="46" width="16" height="16" fill="#1a1a1a"/>
+            <rect x="10" y="48" width="12" height="12" fill="white"/>
+            <rect x="12" y="50" width="8" height="8" fill="#1a1a1a"/>
+            <rect x="28" y="20" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="20" y="28" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="36" y="36" width="6" height="6" fill="#1a1a1a"/>
+            <rect x="50" y="40" width="6" height="6" fill="#1a1a1a"/>
+        </g>
+        
+        {/* Aadhaar Number */}
+        <text x="160" y="150" textAnchor="middle" fill="#1a1a1a" fontSize="18" fontFamily="monospace" fontWeight="bold">
+            XXXX XXXX XXXX
+        </text>
+        
+        {/* Red line at bottom */}
+        <rect x="20" y="165" width="280" height="3" rx="1.5" fill="#dc2626"/>
+        
+        {/* Footer icons */}
+        <g transform="translate(40, 178)">
+            <rect width="20" height="14" rx="2" fill="#6b7280"/>
+        </g>
+        <g transform="translate(100, 178)">
+            <rect width="20" height="14" rx="2" fill="#6b7280"/>
+        </g>
+        <g transform="translate(160, 178)">
+            <rect width="20" height="14" rx="2" fill="#6b7280"/>
+        </g>
+        <g transform="translate(220, 178)">
+            <rect width="60" height="14" rx="2" fill="#6b7280" opacity="0.5"/>
+        </g>
+    </svg>
+);
+
+// Floating Aadhaar Card with 3D effect
+export const AadhaarCard3D = ({ width = 360, height = 280, className = '' }) => (
+    <svg width={width} height={height} viewBox="0 0 360 280" fill="none" className={className}>
+        <defs>
+            <linearGradient id="card3dBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff"/>
+                <stop offset="100%" stopColor="#f3f4f6"/>
+            </linearGradient>
+            <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="8" dy="12" stdDeviation="16" floodColor="#000" floodOpacity="0.2"/>
+            </filter>
+            <linearGradient id="shimmer" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0)"/>
+                <stop offset="50%" stopColor="rgba(255,255,255,0.5)"/>
+                <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+            </linearGradient>
+        </defs>
+        
+        {/* Card with perspective transform */}
+        <g transform="translate(20, 30) rotate(-5)" filter="url(#shadow3d)">
+            {/* Main card */}
+            <rect width="320" height="200" rx="12" fill="url(#card3dBg)"/>
+            <rect width="320" height="200" rx="12" fill="none" stroke="#d1d5db" strokeWidth="1"/>
+            
+            {/* Tricolor */}
+            <rect x="80" y="12" width="160" height="6" rx="3" fill="#FF671F"/>
+            <rect x="100" y="20" width="120" height="5" rx="2.5" fill="#FFFFFF" stroke="#ddd" strokeWidth="0.5"/>
+            <rect x="120" y="27" width="80" height="5" rx="2.5" fill="#046A38"/>
+            
+            {/* Emblem - Ashoka Pillar */}
+            <g transform="translate(18, 8) scale(0.45)">
+                <g fill="none" stroke="#1a365d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.8">
+                    <rect x="6" y="52" width="52" height="4" rx="1"/>
+                    <rect x="12" y="48" width="40" height="4" rx="1"/>
+                    <rect x="20" y="16" width="24" height="32" rx="2"/>
+                    <line x1="26" y1="18" x2="26" y2="46"/>
+                    <line x1="32" y1="18" x2="32" y2="46"/>
+                    <line x1="38" y1="18" x2="38" y2="46"/>
+                    <rect x="16" y="12" width="32" height="6" rx="2"/>
+                    <line x1="14" y1="12" x2="50" y2="12"/>
+                </g>
+            </g>
+            
+            {/* Aadhaar logo - Sunrise Fingerprint */}
+            <g transform="translate(262, 6) scale(0.5)">
+                {/* Sun Rays */}
+                <g fill="none" stroke="#F4B400" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="32" y1="6" x2="32" y2="2"/>
+                    <line x1="22" y1="8" x2="18" y2="4"/>
+                    <line x1="42" y1="8" x2="46" y2="4"/>
+                    <line x1="14" y1="14" x2="10" y2="10"/>
+                    <line x1="50" y1="14" x2="54" y2="10"/>
+                    <line x1="10" y1="24" x2="6" y2="22"/>
+                    <line x1="54" y1="24" x2="58" y2="22"/>
+                </g>
+                {/* Sun Arc */}
+                <path d="M10 32a22 16 0 0 1 44 0" fill="none" stroke="#F4B400" strokeWidth="2.5" strokeLinecap="round"/>
+                {/* Fingerprint Lines */}
+                <g fill="none" stroke="#E64A19" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M16 36a16 12 0 0 1 32 0"/>
+                    <path d="M20 40a12 9 0 0 1 24 0"/>
+                    <path d="M24 44a8 6 0 0 1 16 0"/>
+                    <path d="M28 48a4 3 0 0 1 8 0"/>
+                </g>
+                {/* Base Bar */}
+                <rect x="14" y="52" width="36" height="4" rx="2" fill="#E64A19"/>
+            </g>
+            
+            {/* Photo */}
+            <rect x="20" y="55" width="65" height="80" rx="6" fill="#e5e7eb"/>
+            <circle cx="52.5" cy="80" r="18" fill="#d1d5db"/>
+            <ellipse cx="52.5" cy="118" rx="22" ry="12" fill="#d1d5db"/>
+            
+            {/* Info lines */}
+            <rect x="95" y="60" width="100" height="8" rx="2" fill="#9ca3af"/>
+            <rect x="95" y="75" width="80" height="6" rx="2" fill="#d1d5db"/>
+            <rect x="95" y="88" width="90" height="6" rx="2" fill="#d1d5db"/>
+            <rect x="95" y="101" width="70" height="6" rx="2" fill="#d1d5db"/>
+            
+            {/* QR Code */}
+            <g transform="translate(220, 55)">
+                <rect width="75" height="75" rx="4" fill="white" stroke="#e0e0e0"/>
+                <rect x="8" y="8" width="18" height="18" fill="#1a1a1a"/>
+                <rect x="11" y="11" width="12" height="12" fill="white"/>
+                <rect x="13" y="13" width="8" height="8" fill="#1a1a1a"/>
+                <rect x="49" y="8" width="18" height="18" fill="#1a1a1a"/>
+                <rect x="52" y="11" width="12" height="12" fill="white"/>
+                <rect x="54" y="13" width="8" height="8" fill="#1a1a1a"/>
+                <rect x="8" y="49" width="18" height="18" fill="#1a1a1a"/>
+                <rect x="11" y="52" width="12" height="12" fill="white"/>
+                <rect x="13" y="54" width="8" height="8" fill="#1a1a1a"/>
+                <rect x="30" y="30" width="6" height="6" fill="#1a1a1a"/>
+                <rect x="38" y="30" width="6" height="6" fill="#1a1a1a"/>
+                <rect x="30" y="38" width="6" height="6" fill="#1a1a1a"/>
+                <rect x="50" y="50" width="6" height="6" fill="#1a1a1a"/>
+                <rect x="58" y="50" width="6" height="6" fill="#1a1a1a"/>
+            </g>
+            
+            {/* Aadhaar Number */}
+            <text x="160" y="155" textAnchor="middle" fill="#1a1a1a" fontSize="16" fontFamily="monospace" fontWeight="bold">
+                XXXX XXXX XXXX
+            </text>
+            
+            {/* Red line */}
+            <rect x="20" y="170" width="280" height="3" rx="1.5" fill="#dc2626"/>
+            
+            {/* Footer */}
+            <rect x="80" y="180" width="160" height="8" rx="2" fill="#dc2626" opacity="0.6"/>
+            
+            {/* Shimmer effect overlay */}
+            <rect width="320" height="200" rx="12" fill="url(#shimmer)" opacity="0.3"/>
+        </g>
+        
+        {/* Verified badge */}
+        <g transform="translate(300, 200)">
+            <circle cx="20" cy="20" r="24" fill="#10b981"/>
+            <path d="M14 20l4 4 8-8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </g>
+    </svg>
+);
+
+// Fingerprint Pattern Background
+export const FingerprintPattern = ({ width = 200, height = 200, className = '' }) => (
+    <svg width={width} height={height} viewBox="0 0 200 200" fill="none" className={className}>
+        <defs>
+            <linearGradient id="fpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FF671F" stopOpacity="0.1"/>
+                <stop offset="100%" stopColor="#FF671F" stopOpacity="0.05"/>
+            </linearGradient>
+        </defs>
+        <g stroke="url(#fpGradient)" strokeWidth="2" fill="none" opacity="0.6">
+            <ellipse cx="100" cy="100" rx="90" ry="85"/>
+            <ellipse cx="100" cy="100" rx="80" ry="75"/>
+            <ellipse cx="100" cy="100" rx="70" ry="65"/>
+            <ellipse cx="100" cy="100" rx="60" ry="55"/>
+            <ellipse cx="100" cy="100" rx="50" ry="45"/>
+            <ellipse cx="100" cy="100" rx="40" ry="35"/>
+            <ellipse cx="100" cy="100" rx="30" ry="25"/>
+            <ellipse cx="100" cy="100" rx="20" ry="15"/>
+            <ellipse cx="100" cy="100" rx="10" ry="8"/>
+        </g>
+    </svg>
+);
+
+// India Map Outline (simplified)
+export const IndiaMapOutline = ({ size = 100, className = '' }) => (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" className={className}>
+        <path 
+            d="M50 5 L65 15 L75 10 L80 20 L90 25 L85 35 L95 45 L90 55 L85 50 L80 60 L85 70 L75 80 L65 75 L55 85 L50 95 L45 85 L35 90 L30 80 L20 85 L15 75 L10 65 L15 55 L10 45 L20 35 L15 25 L25 20 L30 10 L40 15 L50 5Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            opacity="0.3"
+        />
+    </svg>
+);

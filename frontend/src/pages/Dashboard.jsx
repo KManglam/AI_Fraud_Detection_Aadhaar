@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { documentAPI } from '../services/api';
@@ -235,6 +235,17 @@ function Dashboard() {
     const [analyzing, setAnalyzing] = useState(false);
     const [notification, setNotification] = useState(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [analyzingDocIds, setAnalyzingDocIds] = useState([]);
+    const pollingIntervalRef = useRef(null);
+
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         // Wait for auth to finish loading before fetching data
@@ -367,18 +378,104 @@ function Dashboard() {
         }
     };
 
+    // Start polling for document status updates
+    const startPolling = useCallback((docIds) => {
+        // Clear any existing polling
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+        }
+        
+        setAnalyzingDocIds(docIds);
+        
+        // Poll every 2 seconds for status updates
+        pollingIntervalRef.current = setInterval(async () => {
+            try {
+                const docs = await documentAPI.getAllDocuments();
+                
+                // Update recent docs and stats with latest data
+                setRecentDocs(docs.slice(0, 5));
+                
+                // CV-based indicators should not affect the status
+                const cvKeywords = ['compression', 'noise', 'copy-paste', 'edge'];
+                
+                const isDocSuspicious = (doc) => {
+                    const metadata = doc.metadata || {};
+                    const fraudDetection = metadata.fraud_detection || {};
+                    const criticalIndicators = (metadata.fraud_indicators || []).filter(
+                        ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw))
+                    );
+                    return metadata.is_authentic === false || 
+                           (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
+                           (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
+                };
+
+                const newStats = docs.reduce((acc, doc) => {
+                    acc.total++;
+                    acc[doc.status] = (acc[doc.status] || 0) + 1;
+                    if (doc.status === 'uploaded' && (!doc.metadata || !doc.metadata.analyzed_at)) {
+                        acc.uploaded = (acc.uploaded || 0) + 1;
+                    }
+                    if (doc.status === 'completed') {
+                        if (isDocSuspicious(doc)) {
+                            acc.suspicious = (acc.suspicious || 0) + 1;
+                        } else {
+                            acc.verified = (acc.verified || 0) + 1;
+                        }
+                    }
+                    return acc;
+                }, { total: 0, completed: 0, processing: 0, failed: 0, uploaded: 0, verified: 0, suspicious: 0 });
+
+                setStats(newStats);
+                
+                // Update chart data
+                setChartData([
+                    { name: 'Verified', count: newStats.verified, color: '#10b981' },
+                    { name: 'Suspicious', count: newStats.suspicious, color: '#ef4444' },
+                    { name: 'Processing', count: newStats.processing, color: '#f59e0b' }
+                ]);
+
+                setPieData([
+                    { name: 'Verified', value: newStats.verified, color: '#10b981' },
+                    { name: 'Suspicious', value: newStats.suspicious, color: '#ef4444' },
+                    { name: 'Pending', value: newStats.processing + newStats.uploaded, color: '#f59e0b' },
+                    { name: 'Failed', value: newStats.failed, color: '#6b7280' }
+                ].filter(d => d.value > 0));
+                
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }, 2000);
+    }, []);
+    
+    // Stop polling
+    const stopPolling = useCallback(() => {
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
+        setAnalyzingDocIds([]);
+    }, []);
+
     const autoAnalyzeDocuments = async (documentIds) => {
         try {
             setAnalyzing(true);
             showNotification('Auto-analyzing documents...', 'info');
             
+            // Start polling for real-time status updates
+            startPolling(documentIds);
+            
             const result = await documentAPI.batchAnalyze(documentIds);
+            
+            // Stop polling after analysis completes
+            stopPolling();
+            
             showNotification(`Analysis complete! ${result.successful} document(s) processed.`, 'success');
             
             await fetchDashboardData();
         } catch (error) {
             console.error('Auto-analysis failed:', error);
             showNotification('Auto-analysis failed. You can retry manually.', 'warning');
+            stopPolling();
         } finally {
             setAnalyzing(false);
         }
@@ -399,13 +496,22 @@ function Dashboard() {
             }
             
             const documentIds = unanalyzedDocs.map(doc => doc.id);
+            
+            // Start polling for real-time status updates
+            startPolling(documentIds);
+            
             const result = await documentAPI.batchAnalyze(documentIds);
+            
+            // Stop polling after analysis completes
+            stopPolling();
+            
             showNotification(`Successfully analyzed ${result.successful} document(s)!`, 'success');
             
             await fetchDashboardData();
         } catch (error) {
             console.error('Batch analysis failed:', error);
             showNotification('Analysis failed. Please try again.', 'error');
+            stopPolling();
         } finally {
             setAnalyzing(false);
         }

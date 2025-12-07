@@ -50,6 +50,20 @@ export const supabaseAuthAPI = {
             console.log('Supabase signup response:', data);
             
             if (data.user) {
+                // Sync user to Django backend with custom username (for username login support)
+                try {
+                    await authAxios.post('/supabase/sync-user/', {
+                        email: email,
+                        username: username || email.split('@')[0],
+                        name: name || username || '',
+                        supabase_id: data.user.id
+                    });
+                    console.log('User synced to Django backend');
+                } catch (syncErr) {
+                    console.warn('User sync to backend failed (non-critical):', syncErr);
+                    // Continue anyway - user can still login with email
+                }
+                
                 // Check if email confirmation is required
                 const needsEmailVerification = !data.session;
                 
@@ -93,12 +107,38 @@ export const supabaseAuthAPI = {
     },
 
     /**
-     * Login user with Supabase
-     * @param {string} email 
+     * Login user with Supabase (supports both email and username)
+     * @param {string} emailOrUsername - Can be email or username
      * @param {string} password 
      */
-    login: async (email, password) => {
+    login: async (emailOrUsername, password) => {
         try {
+            let email = emailOrUsername;
+            
+            // If input doesn't contain @, it's a username - fetch email from backend
+            if (!emailOrUsername.includes('@')) {
+                try {
+                    const response = await authAxios.post('/supabase/get-email/', {
+                        username: emailOrUsername
+                    });
+                    
+                    if (response.data.success && response.data.email) {
+                        email = response.data.email;
+                    } else {
+                        return { 
+                            success: false, 
+                            message: 'Invalid username or password'
+                        };
+                    }
+                } catch (err) {
+                    console.error('Username lookup error:', err);
+                    return { 
+                        success: false, 
+                        message: 'Invalid username or password'
+                    };
+                }
+            }
+            
             const data = await supabaseAuth.signIn(email, password);
             
             if (data.user && data.session) {
@@ -112,6 +152,7 @@ export const supabaseAuthAPI = {
                         id: data.user.id,
                         email: data.user.email,
                         name: data.user.user_metadata?.name || '',
+                        username: emailOrUsername.includes('@') ? data.user.email?.split('@')[0] : emailOrUsername,
                     },
                     tokens: {
                         access_token: data.session.access_token,

@@ -6,19 +6,28 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary Colors
+        // Primary Colors - Aadhaar Saffron/Orange
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#f97316',
+          600: '#ea580c',
+          700: '#c2410c',
+          800: '#9a3412',
+          900: '#7c2d12',
+          950: '#431407',
+        },
+        // Aadhaar Accent - Green
+        aadhaar: {
+          saffron: '#FF671F',
+          white: '#FFFFFF',
+          green: '#046A38',
+          navy: '#1a365d',
+          gold: '#F4B400',
+          red: '#E64A19',
         },
         // Secondary - Slate
         secondary: {
@@ -83,12 +92,14 @@ module.exports = {
         '2xs': ['0.625rem', { lineHeight: '0.875rem' }],
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(59, 130, 246, 0.3)',
-        'glow-success': '0 0 20px rgba(16, 185, 129, 0.3)',
+        'glow': '0 0 20px rgba(249, 115, 22, 0.3)',
+        'glow-success': '0 0 20px rgba(4, 106, 56, 0.3)',
         'glow-error': '0 0 20px rgba(239, 68, 68, 0.3)',
+        'glow-saffron': '0 0 25px rgba(255, 103, 31, 0.25)',
         'card': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
         'card-hover': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
         'premium': '0 25px 50px -12px rgb(0 0 0 / 0.15)',
+        'aadhaar': '0 4px 14px 0 rgba(255, 103, 31, 0.15)',
       },
       borderRadius: {
         '4xl': '2rem',

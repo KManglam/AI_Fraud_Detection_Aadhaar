@@ -2,11 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const variants = {
-    default: 'bg-white border border-secondary-200 shadow-card',
-    elevated: 'bg-white border border-secondary-100 shadow-lg',
-    outline: 'bg-transparent border-2 border-secondary-200',
-    ghost: 'bg-secondary-50 border border-transparent',
-    gradient: 'bg-gradient-to-br from-primary-500 to-primary-700 text-white border-0',
+    default: 'bg-white border border-secondary-200 shadow-card hover:border-orange-200',
+    elevated: 'bg-white border border-secondary-100 shadow-lg hover:border-orange-200',
+    outline: 'bg-transparent border-2 border-secondary-200 hover:border-orange-300',
+    ghost: 'bg-secondary-50 border border-transparent hover:bg-orange-50',
+    gradient: 'bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0',
+    aadhaar: 'bg-gradient-to-br from-orange-500 via-orange-400 to-green-500 text-white border-0',
 };
 
 const sizes = {

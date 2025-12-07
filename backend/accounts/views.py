@@ -124,12 +124,118 @@ def supabase_register(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def get_email_by_username(request):
+    """
+    Get user's email by username for Supabase login
+    
+    Request body:
+    - username: string (required)
+    """
+    username = request.data.get('username', '').lower().strip()
+    
+    if not username:
+        return Response({
+            'success': False,
+            'message': 'Username is required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = User.objects.get(username__iexact=username)
+        return Response({
+            'success': True,
+            'email': user.email
+        })
+    except User.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'User not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def sync_user(request):
+    """
+    Sync user from Supabase to Django with custom username.
+    Called after Supabase registration to ensure username is preserved.
+    
+    Request body:
+    - email: string (required)
+    - username: string (required)
+    - name: string (optional)
+    - supabase_id: string (optional)
+    """
+    email = request.data.get('email', '').lower().strip()
+    username = request.data.get('username', '').lower().strip()
+    name = request.data.get('name', '')
+    supabase_id = request.data.get('supabase_id', '')
+    
+    if not email or not username:
+        return Response({
+            'success': False,
+            'message': 'Email and username are required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Check if username is already taken by another user
+        existing_user = User.objects.filter(username__iexact=username).exclude(email__iexact=email).first()
+        if existing_user:
+            # Username taken, generate unique one
+            base_username = username
+            counter = 1
+            while User.objects.filter(username__iexact=username).exclude(email__iexact=email).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+        
+        # Get or create user
+        user, created = User.objects.get_or_create(
+            email__iexact=email,
+            defaults={
+                'email': email,
+                'username': username,
+                'name': name,
+                'supabase_id': supabase_id if supabase_id else None,
+                'is_active': True,
+            }
+        )
+        
+        if not created:
+            # Update existing user's username if not set or different
+            updated = False
+            if user.username != username and not User.objects.filter(username__iexact=username).exclude(id=user.id).exists():
+                user.username = username
+                updated = True
+            if supabase_id and not user.supabase_id:
+                user.supabase_id = supabase_id
+                updated = True
+            if name and not user.name:
+                user.name = name
+                updated = True
+            if updated:
+                user.save()
+        
+        return Response({
+            'success': True,
+            'message': 'User synced successfully',
+            'user': UserSerializer(user).data
+        })
+        
+    except Exception as e:
+        logger.error(f"User sync error: {e}")
+        return Response({
+            'success': False,
+            'message': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def supabase_login(request):
     """
     Login user with Supabase Auth
     
     Request body:
-    - email: string (required)
+    - email: string (required, can also accept username)
     - password: string (required)
     """
     SupabaseAuth, _, _ = get_supabase_clients()
@@ -139,14 +245,26 @@ def supabase_login(request):
             'message': 'Supabase not configured'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    email = request.data.get('email')
+    email_or_username = request.data.get('email', '').strip()
     password = request.data.get('password')
     
-    if not email or not password:
+    if not email_or_username or not password:
         return Response({
             'success': False,
-            'message': 'Email and password are required'
+            'message': 'Email/username and password are required'
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if input is username (no @) and convert to email
+    email = email_or_username
+    if '@' not in email_or_username:
+        try:
+            user = User.objects.get(username__iexact=email_or_username)
+            email = user.email
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Invalid username or password'
+            }, status=status.HTTP_401_UNAUTHORIZED)
     
     try:
         response = SupabaseAuth.sign_in(email=email, password=password)

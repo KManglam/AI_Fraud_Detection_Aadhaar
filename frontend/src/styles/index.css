@@ -6,24 +6,32 @@
 
 /* ===== CSS VARIABLES / DESIGN TOKENS ===== */
 :root {
-  /* Colors */
-  --color-primary: #2563eb;
-  --color-primary-light: #eff6ff;
-  --color-primary-dark: #1e40af;
+  /* Aadhaar Theme Colors */
+  --color-primary: #f97316;
+  --color-primary-light: #fff7ed;
+  --color-primary-dark: #c2410c;
+  
+  /* Aadhaar Brand Colors */
+  --aadhaar-saffron: #FF671F;
+  --aadhaar-white: #FFFFFF;
+  --aadhaar-green: #046A38;
+  --aadhaar-navy: #1a365d;
+  --aadhaar-gold: #F4B400;
+  --aadhaar-red: #E64A19;
   
   --color-secondary: #64748b;
   --color-secondary-light: #f1f5f9;
   
-  --color-success: #10b981;
+  --color-success: #046A38;
   --color-success-light: #ecfdf5;
   
-  --color-warning: #f59e0b;
+  --color-warning: #F4B400;
   --color-warning-light: #fffbeb;
   
   --color-error: #ef4444;
   --color-error-light: #fef2f2;
   
-  --color-bg: #f8fafc;
+  --color-bg: #fffaf5;
   --color-bg-card: #ffffff;
   --color-bg-elevated: #ffffff;
   
@@ -31,8 +39,8 @@
   --color-text-secondary: #64748b;
   --color-text-tertiary: #94a3b8;
   
-  --color-border: #e2e8f0;
-  --color-border-hover: #cbd5e1;
+  --color-border: #fed7aa;
+  --color-border-hover: #fdba74;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -91,7 +99,7 @@
   }
   
   ::selection {
-    @apply bg-primary-200 text-primary-900;
+    @apply bg-orange-200 text-orange-900;
   }
 }
 
@@ -266,9 +274,13 @@
     @apply bg-white/80 backdrop-blur-xl border border-white/20;
   }
   
-  /* Gradient Text */
+  /* Gradient Text - Aadhaar Theme */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent;
+  }
+  
+  .gradient-text-tricolor {
+    @apply bg-gradient-to-r from-orange-500 via-orange-400 to-green-600 bg-clip-text text-transparent;
   }
 }
 

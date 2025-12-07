@@ -14,6 +14,7 @@ import Documentation from './pages/Documentation.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './styles/index.css';
 
 function App() {
@@ -27,13 +28,13 @@ function App() {
               <Route path="/welcome" element={<LandingPage />} />
             </Route>
             
-            {/* Routes with Layout */}
+            {/* Protected Routes with Layout */}
             <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/documents" element={<DocumentList />} />
-              <Route path="/documents/:id" element={<DocumentDetail />} />
-              <Route path="/verification-results" element={<VerificationResults />} />
+              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/documents" element={<ProtectedRoute><DocumentList /></ProtectedRoute>} />
+              <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>} />
+              <Route path="/verification-results" element={<ProtectedRoute><VerificationResults /></ProtectedRoute>} />
               <Route path="/about" element={<About />} />
               <Route path="/documentation" element={<Documentation />} />
               <Route path="/login" element={<Login />} />

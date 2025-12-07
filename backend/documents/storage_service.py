@@ -25,7 +25,8 @@ class StorageService:
     
     def _check_supabase_enabled(self) -> bool:
         """Check if Supabase Storage should be used"""
-        use_supabase = os.getenv('USE_SUPABASE_STORAGE', 'true').lower() == 'true'
+        # Use the setting from settings.py (which is controlled by APP_ENV)
+        use_supabase = getattr(settings, 'USE_SUPABASE_STORAGE', False)
         has_config = bool(
             getattr(settings, 'SUPABASE_URL', None) and 
             getattr(settings, 'SUPABASE_SERVICE_ROLE_KEY', None)

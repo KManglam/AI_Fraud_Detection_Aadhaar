@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthModal from '../AuthModal';
 import { 
-    LogoIcon, 
+    LogoIcon,
+    AadhaarLogo,
     DashboardIcon, 
     DocumentsIcon, 
     VerificationIcon, 
@@ -44,7 +45,7 @@ function Header() {
     const handleLogout = async () => {
         await logout();
         setUserMenuOpen(false);
-        navigate('/');
+        navigate('/welcome');
     };
 
     const isActive = (path, exact = false) => {
@@ -53,7 +54,7 @@ function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-secondary-200 bg-white/80 backdrop-blur-xl">
+        <header className="sticky top-0 z-50 w-full border-b border-orange-100 bg-white/90 backdrop-blur-xl">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between">
                     {/* Logo */}
@@ -62,10 +63,10 @@ function Header() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
-                            <LogoIcon size={40} />
+                            <AadhaarLogo size={40} />
                         </motion.div>
                         <div className="hidden sm:block">
-                            <h1 className="text-lg font-bold text-secondary-900 group-hover:text-primary-600 transition-colors">
+                            <h1 className="text-lg font-bold text-orange-600 group-hover:text-orange-700 transition-colors">
                                 AadhaarAuth
                             </h1>
                             <p className="text-xs text-secondary-500 -mt-0.5">Verification System</p>
@@ -73,7 +74,7 @@ function Header() {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-1 bg-secondary-50 rounded-full px-2 py-1.5 border border-secondary-200">
+                    <nav className="hidden md:flex items-center gap-1 bg-orange-50/50 rounded-full px-2 py-1.5 border border-orange-100">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             const active = isActive(item.path, item.exact);
@@ -86,8 +87,8 @@ function Header() {
                                         relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
                                         transition-all duration-200
                                         ${active 
-                                            ? 'text-primary-600 bg-white shadow-sm' 
-                                            : 'text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100'
+                                            ? 'text-orange-600 bg-white shadow-sm' 
+                                            : 'text-secondary-600 hover:text-secondary-900 hover:bg-orange-50'
                                         }
                                     `}
                                 >
@@ -113,7 +114,7 @@ function Header() {
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                                     className="flex items-center gap-2 px-3 py-2 rounded-full bg-secondary-100 hover:bg-secondary-200 transition-colors"
                                 >
-                                    <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-medium">
                                         {user?.name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
                                     </div>
                                     <span className="text-sm font-medium text-secondary-700 max-w-[100px] truncate">
@@ -155,7 +156,7 @@ function Header() {
                                 </Link>
                                 <Link
                                     to="/register"
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-full transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-full transition-colors shadow-sm"
                                 >
                                     <span>Sign Up</span>
                                 </Link>
@@ -204,8 +205,8 @@ function Header() {
                                             flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
                                             transition-all duration-200
                                             ${active 
-                                                ? 'text-primary-600 bg-primary-50' 
-                                                : 'text-secondary-600 hover:bg-secondary-50'
+                                                ? 'text-orange-600 bg-orange-50' 
+                                                : 'text-secondary-600 hover:bg-orange-50'
                                             }
                                         `}
                                     >
@@ -220,7 +221,7 @@ function Header() {
                                 {isAuthenticated ? (
                                     <>
                                         <div className="flex items-center gap-3 px-4 py-3">
-                                            <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium">
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-medium">
                                                 {user?.name?.charAt(0).toUpperCase() || 'U'}
                                             </div>
                                             <div>
@@ -252,7 +253,7 @@ function Header() {
                                         <Link
                                             to="/register"
                                             onClick={() => setMobileMenuOpen(false)}
-                                            className="flex items-center justify-center gap-2 mx-4 py-3 rounded-xl text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+                                            className="flex items-center justify-center gap-2 mx-4 py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-colors"
                                         >
                                             <span>Create Account</span>
                                         </Link>

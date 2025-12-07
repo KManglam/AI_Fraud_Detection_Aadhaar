@@ -108,11 +108,28 @@ WSGI_APPLICATION = "aadhaar_system.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-# Database configuration
-# Use DATABASE_URL for production (Render PostgreSQL)
+# ============================================
+# APP_ENV controls the environment mode
+# "local" = SQLite + Local Storage
+# "production" = PostgreSQL + Supabase Storage
+# ============================================
+APP_ENV = os.getenv("APP_ENV", "local").lower()
+IS_LOCAL = APP_ENV == "local"
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if DATABASE_URL:
+if IS_LOCAL or not DATABASE_URL:
+    # LOCAL: Use SQLite database
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+    # Use local file storage
+    USE_SUPABASE_STORAGE = False
+else:
+    # PRODUCTION: Use PostgreSQL database
     DATABASES = {
         "default": dj_database_url.config(
             default=DATABASE_URL,
@@ -120,13 +137,11 @@ if DATABASE_URL:
             conn_health_checks=True,
         )
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+    # Use Supabase storage
+    USE_SUPABASE_STORAGE = True
+
+# Allow override via environment variable
+USE_SUPABASE_STORAGE = os.getenv("USE_SUPABASE_STORAGE", str(USE_SUPABASE_STORAGE)).lower() == "true"
 
 
 # Password validation
@@ -205,8 +220,9 @@ SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "aadhaar-documents")
 
-# Supabase JWT settings (for token verification)
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")  # Optional: for local JWT verification
+# Supabase JWT settings (REQUIRED for secure local token verification)
+# Get from: Supabase Dashboard -> Project Settings -> API -> JWT Secret
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")  # Required for production
 
 # Security settings for production
 if not DEBUG:

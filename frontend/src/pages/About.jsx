@@ -9,7 +9,8 @@ import {
     UsersIcon,
     CheckIcon,
     ArrowRightIcon,
-    LogoIcon
+    LogoIcon,
+    AadhaarLogo
 } from '../components/icons/index';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -30,10 +31,10 @@ const itemVariants = {
 // Feature Card Component
 function FeatureCard({ icon: Icon, title, description, color }) {
     const colorClasses = {
-        primary: 'bg-primary-100 text-primary-600',
-        success: 'bg-success-100 text-success-600',
-        warning: 'bg-warning-100 text-warning-600',
-        error: 'bg-error-100 text-error-600',
+        primary: 'bg-orange-100 text-orange-600',
+        success: 'bg-green-100 text-green-600',
+        warning: 'bg-amber-100 text-amber-600',
+        error: 'bg-red-100 text-red-600',
     };
 
     return (
@@ -106,7 +107,7 @@ function About() {
             {/* Hero Section */}
             <motion.section variants={itemVariants} className="text-center max-w-4xl mx-auto">
                 <div className="flex justify-center mb-6">
-                    <LogoIcon size={80} />
+                    <AadhaarLogo size={80} />
                 </div>
                 <h1 className="text-4xl md:text-5xl font-bold text-secondary-900 mb-4">
                     Securing India's Digital Identity
@@ -131,7 +132,7 @@ function About() {
 
             {/* Stats Section */}
             <motion.section variants={itemVariants}>
-                <Card className="bg-gradient-to-r from-primary-600 to-primary-800 text-white">
+                <Card className="bg-gradient-to-r from-orange-500 to-green-600 text-white">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-4">
                         <StatItem value="99.2%" label="Accuracy Rate" />
                         <StatItem value="<2s" label="Processing Time" />
@@ -144,10 +145,10 @@ function About() {
             {/* Vision & Mission Section */}
             <motion.section variants={containerVariants} className="grid md:grid-cols-2 gap-8">
                 <motion.div variants={itemVariants}>
-                    <Card className="h-full bg-primary-50 border-primary-100">
+                    <Card className="h-full bg-orange-50 border-orange-100">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="p-3 bg-primary-100 rounded-xl">
-                                <TargetIcon size={24} className="text-primary-600" />
+                            <div className="p-3 bg-orange-100 rounded-xl">
+                                <TargetIcon size={24} className="text-orange-600" />
                             </div>
                             <h2 className="text-2xl font-bold text-secondary-900">Our Vision</h2>
                         </div>

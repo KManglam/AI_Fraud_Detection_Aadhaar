@@ -15,6 +15,8 @@ urlpatterns = [
     # Supabase Authentication (recommended)
     path('supabase/register/', views.supabase_register, name='supabase_register'),
     path('supabase/login/', views.supabase_login, name='supabase_login'),
+    path('supabase/get-email/', views.get_email_by_username, name='get_email_by_username'),
+    path('supabase/sync-user/', views.sync_user, name='sync_user'),
     path('supabase/logout/', views.supabase_logout, name='supabase_logout'),
     path('supabase/refresh/', views.supabase_refresh_token, name='supabase_refresh_token'),
     

@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/auth';
-import { LogoIcon, EyeIcon, EyeOffIcon, ErrorIcon, CheckIcon, EmailIcon } from '../components/icons/index';
+import { LogoIcon, EyeIcon, EyeOffIcon, ErrorIcon, CheckIcon, EmailIcon, AadhaarLogo, ShieldIcon, VerificationIcon } from '../components/icons/index';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 
@@ -19,6 +19,110 @@ const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
 };
+
+// Decorative Side Panel Component
+const DecorativePanel = () => (
+    <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-500 via-orange-400 to-green-500 relative overflow-hidden">
+        {/* 3D Wave SVG Background */}
+        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 400 800">
+            <defs>
+                <linearGradient id="wave1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#16a34a" stopOpacity="0.6" />
+                </linearGradient>
+                <linearGradient id="wave2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#fb923c" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#f97316" stopOpacity="0.5" />
+                </linearGradient>
+                <linearGradient id="wave3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.1" />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0.2" />
+                </linearGradient>
+            </defs>
+            {/* Back wave - green */}
+            <path d="M-50,600 Q100,500 200,550 T400,450 L400,800 L-50,800 Z" fill="url(#wave1)" />
+            {/* Middle wave - orange */}
+            <path d="M-50,650 Q150,550 250,620 T450,520 L450,800 L-50,800 Z" fill="url(#wave2)" />
+            {/* Front wave - white highlight */}
+            <path d="M-50,700 Q100,620 200,680 T400,600 L400,800 L-50,800 Z" fill="url(#wave3)" />
+            {/* Top decorative curve */}
+            <path d="M400,0 Q350,100 400,200 L400,0 Z" fill="url(#wave1)" />
+            <path d="M0,0 Q80,150 0,300 L0,0 Z" fill="url(#wave2)" />
+        </svg>
+        
+        {/* Floating orbs for depth */}
+        <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+        <div className="absolute bottom-40 left-10 w-24 h-24 bg-green-300/20 rounded-full blur-xl" />
+        <div className="absolute top-1/3 left-1/4 w-16 h-16 bg-orange-200/20 rounded-full blur-lg" />
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col items-center justify-center w-full p-8">
+            {/* Combined Card Container with glass effect */}
+            <motion.div
+                initial={{ opacity: 0, y: 30, rotateX: 10 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+                className="relative"
+                style={{ perspective: '1000px' }}
+            >
+                {/* Stats Card */}
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 mb-3 w-56 transform hover:scale-105 transition-transform duration-300">
+                    <p className="text-orange-500 text-xs font-semibold mb-1">Verifications</p>
+                    <p className="text-2xl font-bold text-gray-900 mb-2">10,247</p>
+                    <div className="flex items-center gap-2">
+                        <svg className="flex-1 h-8" viewBox="0 0 200 50">
+                            <path d="M0,40 Q30,35 50,25 T100,30 T150,15 T200,25" fill="none" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
+                            <path d="M0,45 Q40,40 70,35 T130,40 T180,30 T200,35" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+                        </svg>
+                        <span className="bg-gradient-to-r from-gray-800 to-gray-900 text-white text-[10px] px-2 py-0.5 rounded-full">+12%</span>
+                    </div>
+                </div>
+                
+                {/* Connector element */}
+                <div className="absolute left-1/2 -translate-x-1/2 w-1 h-3 bg-gradient-to-b from-white/80 to-white/40 rounded-full" />
+                
+                {/* Security Info Card */}
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 w-56 transform hover:scale-105 transition-transform duration-300">
+                    <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 flex flex-col gap-0.5">
+                            <div className="w-1.5 h-5 bg-gradient-to-b from-orange-500 to-orange-400 rounded-full" />
+                            <div className="w-1.5 h-3 bg-gradient-to-b from-orange-400 to-orange-300 rounded-full" />
+                            <div className="w-1.5 h-2 bg-orange-200 rounded-full" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-full p-1.5 w-fit mb-2">
+                                <VerificationIcon size={14} className="text-orange-600" />
+                            </div>
+                            <h3 className="font-bold text-gray-900 text-sm mb-0.5">Your data, secured</h3>
+                            <p className="text-xs text-gray-500 leading-relaxed">
+                                Bank-grade encryption protects your identity.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+            
+            {/* Floating Badges with 3D effect */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                transition={{ delay: 0.5, duration: 0.5, type: "spring" }}
+                className="absolute top-16 right-10 bg-white rounded-full p-3 shadow-xl ring-4 ring-white/30"
+            >
+                <AadhaarLogo size={28} />
+            </motion.div>
+            
+            <motion.div
+                initial={{ opacity: 0, scale: 0.5, rotate: 10 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                transition={{ delay: 0.7, duration: 0.5, type: "spring" }}
+                className="absolute bottom-24 right-14 bg-white rounded-full p-2.5 shadow-xl ring-4 ring-white/30"
+            >
+                <ShieldIcon size={20} className="text-green-600" />
+            </motion.div>
+        </div>
+    </div>
+);
 
 // Email validation regex
 const isValidEmail = (email) => {
@@ -161,18 +265,19 @@ function Login() {
     };
 
     return (
-        <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="min-h-[80vh] flex items-center justify-center px-4"
-        >
-            <motion.div variants={itemVariants} className="w-full max-w-md">
-                <Card className="p-8">
+        <div className="min-h-screen flex">
+            {/* Left Side - Login Form */}
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-white"
+            >
+                <motion.div variants={itemVariants} className="w-full max-w-md">
                     {/* Logo */}
                     <div className="text-center mb-8">
                         <div className="inline-flex items-center justify-center mb-4">
-                            <LogoIcon size={48} />
+                            <AadhaarLogo size={56} />
                         </div>
                         <h1 className="text-2xl font-bold text-secondary-900">Welcome Back</h1>
                         <p className="text-secondary-500 mt-1">Sign in to your AadhaarAuth account</p>
@@ -226,7 +331,7 @@ function Login() {
                                                 id="resetEmail"
                                                 value={resetEmail}
                                                 onChange={(e) => setResetEmail(formatEmail(e.target.value))}
-                                                className="w-full px-4 py-3 pl-11 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
+                                                className="w-full px-4 py-3 pl-11 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
                                                 placeholder="Enter your email"
                                             />
                                             <EmailIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-400" />
@@ -240,7 +345,7 @@ function Login() {
                                     <button
                                         type="button"
                                         onClick={handleBackToLogin}
-                                        className="w-full text-center text-sm text-secondary-600 hover:text-primary-600 transition-colors"
+                                        className="w-full text-center text-sm text-secondary-600 hover:text-orange-600 transition-colors"
                                     >
                                         Back to Login
                                     </button>
@@ -274,7 +379,7 @@ function Login() {
                                 name="usernameOrEmail"
                                 value={formData.usernameOrEmail}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
+                                className="w-full px-4 py-3 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
                                 placeholder="Enter your username or email"
                                 autoComplete="username"
                             />
@@ -289,7 +394,7 @@ function Login() {
                                 <button
                                     type="button"
                                     onClick={() => setShowForgotPassword(true)}
-                                    className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                                    className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors"
                                 >
                                     Forgot password?
                                 </button>
@@ -301,7 +406,7 @@ function Login() {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 pr-12 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
+                                    className="w-full px-4 py-3 pr-12 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
                                     placeholder="Enter your password"
                                     autoComplete="current-password"
                                 />
@@ -333,7 +438,7 @@ function Login() {
                             Don't have an account?{' '}
                             <Link
                                 to="/register"
-                                className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                                className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
                             >
                                 Create one
                             </Link>
@@ -341,9 +446,12 @@ function Login() {
                     </div>
                         </>
                     )}
-                </Card>
+                </motion.div>
             </motion.div>
-        </motion.div>
+            
+            {/* Right Side - Decorative Panel */}
+            <DecorativePanel />
+        </div>
     );
 }
 

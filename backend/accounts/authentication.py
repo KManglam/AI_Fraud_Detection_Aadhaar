@@ -66,34 +66,37 @@ class JWTAuthentication(authentication.BaseAuthentication):
     def _authenticate_supabase_token(self, token):
         """
         Authenticate using Supabase JWT token
+        Uses local JWT verification first (faster), falls back to Supabase API if needed
         """
         try:
-            from aadhaar_system.supabase_client import get_supabase_admin
+            # Try local JWT verification first (faster - no network call)
+            user_data = self._verify_supabase_jwt_locally(token)
             
-            logger.info(f"Attempting Supabase token auth, token prefix: {token[:50]}...")
+            if user_data:
+                logger.info(f"Supabase user verified locally: {user_data.get('email')}")
+                # Get or create local user from decoded token data
+                user = self._get_or_create_user_from_token_data(user_data)
+            else:
+                # Fallback to Supabase API verification (slower - network call)
+                logger.info("Local JWT verification failed, falling back to Supabase API")
+                from aadhaar_system.supabase_client import get_supabase_admin
+                client = get_supabase_admin()
+                response = client.auth.get_user(token)
+                
+                if not response or not response.user:
+                    logger.warning("Supabase returned no user")
+                    return None
+                
+                supabase_user = response.user
+                logger.info(f"Supabase user found via API: {supabase_user.email}")
+                user = self._get_or_create_user_from_supabase(supabase_user)
             
-            # Verify token with Supabase
-            client = get_supabase_admin()
-            response = client.auth.get_user(token)
-            
-            logger.info(f"Supabase get_user response: {response}")
-            
-            if not response or not response.user:
-                logger.warning("Supabase returned no user")
-                return None
-            
-            supabase_user = response.user
-            logger.info(f"Supabase user found: {supabase_user.email}")
-            
-            # Get or create local user linked to Supabase user
-            user = self._get_or_create_user_from_supabase(supabase_user)
             logger.info(f"Local user: {user.username} (id={user.id})")
             
             if not user.is_active:
                 raise exceptions.AuthenticationFailed('User is inactive')
             
-            # Store supabase user data in request for later use
-            return (user, {'token': token, 'supabase_user': supabase_user})
+            return (user, {'token': token, 'user_data': user_data})
             
         except exceptions.AuthenticationFailed:
             raise
@@ -101,8 +104,124 @@ class JWTAuthentication(authentication.BaseAuthentication):
             logger.error(f"Supabase token auth failed: {type(e).__name__}: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            # Return None to indicate failure, let caller decide what to do
             return None
+    
+    def _verify_supabase_jwt_locally(self, token):
+        """
+        Verify Supabase JWT token locally with cryptographic signature verification.
+        Fast local verification - no network call required.
+        Returns decoded user data or None if verification fails.
+        """
+        jwt_secret = settings.SUPABASE_JWT_SECRET
+        
+        if not jwt_secret:
+            logger.warning("SUPABASE_JWT_SECRET not configured, falling back to API verification")
+            return None
+        
+        try:
+            # Cryptographically verify and decode the JWT token
+            # Supabase uses HS256 algorithm with the JWT secret
+            payload = jwt.decode(
+                token,
+                jwt_secret,
+                algorithms=['HS256'],
+                options={
+                    'verify_signature': True,
+                    'verify_exp': True,
+                    'verify_iat': True,
+                    'require': ['exp', 'sub', 'email']
+                },
+                audience='authenticated',  # Supabase default audience for authenticated users
+            )
+            
+            logger.debug(f"JWT verified locally for user: {payload.get('email')}")
+            
+            # Extract user data from verified Supabase JWT payload
+            return {
+                'id': payload.get('sub'),  # Supabase user ID
+                'email': payload.get('email'),
+                'user_metadata': payload.get('user_metadata', {}),
+                'role': payload.get('role'),
+            }
+            
+        except jwt.ExpiredSignatureError:
+            logger.warning("Supabase JWT token has expired")
+            return None
+        except jwt.InvalidAudienceError:
+            # Try without audience verification (some Supabase configs may vary)
+            try:
+                payload = jwt.decode(
+                    token,
+                    jwt_secret,
+                    algorithms=['HS256'],
+                    options={'verify_signature': True, 'verify_exp': True}
+                )
+                return {
+                    'id': payload.get('sub'),
+                    'email': payload.get('email'),
+                    'user_metadata': payload.get('user_metadata', {}),
+                    'role': payload.get('role'),
+                }
+            except Exception as e:
+                logger.warning(f"JWT verification failed after audience retry: {e}")
+                return None
+        except jwt.InvalidSignatureError:
+            logger.warning("Invalid JWT signature - possible token forgery attempt")
+            return None
+        except jwt.DecodeError as e:
+            logger.warning(f"JWT decode error: {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"Local JWT verification failed: {e}")
+            return None
+    
+    def _get_or_create_user_from_token_data(self, user_data):
+        """
+        Get or create a local Django user from decoded token data
+        """
+        email = user_data.get('email')
+        supabase_id = user_data.get('id')
+        user_metadata = user_data.get('user_metadata', {})
+        
+        if not email:
+            raise exceptions.AuthenticationFailed('No email in token')
+        
+        # Try to find user by supabase_id first, then by email
+        try:
+            user = User.objects.get(supabase_id=supabase_id)
+            return user
+        except (User.DoesNotExist, Exception):
+            pass
+        
+        try:
+            user = User.objects.get(email=email)
+            if hasattr(user, 'supabase_id') and not user.supabase_id:
+                user.supabase_id = supabase_id
+                user.save(update_fields=['supabase_id'])
+            return user
+        except User.DoesNotExist:
+            pass
+        
+        # Create new user
+        username = email.split('@')[0]
+        base_username = username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+        
+        user = User.objects.create(
+            username=username,
+            email=email,
+            name=user_metadata.get('name', ''),
+            is_active=True,
+        )
+        
+        if hasattr(user, 'supabase_id'):
+            user.supabase_id = supabase_id
+            user.save(update_fields=['supabase_id'])
+        
+        return user
     
     def _authenticate_legacy_token(self, token):
         """

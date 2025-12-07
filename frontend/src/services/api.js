@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL 
   ? `${process.env.REACT_APP_API_URL}/api` 
@@ -77,11 +78,6 @@ api.interceptors.response.use(
     
     try {
       // Use Supabase to refresh token
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = 'https://xnrnhgzdckbrezyudipf.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhucm5oZ3pkY2ticmV6eXVkaXBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQzNDEsImV4cCI6MjA3OTkwMDM0MX0.CCxeKMFlx0BMREgXqbC8QLmXisOaeb44YlfzwWEMdlI';
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
       const { data, error: refreshError } = await supabase.auth.refreshSession({
         refresh_token: refreshToken
       });

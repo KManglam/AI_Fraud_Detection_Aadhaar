@@ -168,7 +168,7 @@ cd "AadhaarAuth System"
 
 # Create and activate virtual environment
 python -m venv venv
-.\venv\Scripts\activate
+.cd\venv\Scripts\activate
 
 # Install dependencies
 cd backend
