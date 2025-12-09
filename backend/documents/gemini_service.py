@@ -8,13 +8,45 @@ import re
 from .verhoeff import validate_aadhaar
 
 
+def normalize_bilingual_field(value):
+    """
+    Normalize bilingual fields that Gemini 2.5 Flash may return as objects.
+    Converts {hindi: "...", english: "..."} objects to strings.
+    
+    Args:
+        value: The field value to normalize
+        
+    Returns:
+        str: Normalized string value
+    """
+    if value is None:
+        return None
+    
+    if isinstance(value, dict):
+        # If bilingual text with english key, prefer english
+        if "english" in value:
+            return str(value["english"]).strip()
+        elif "English" in value:
+            return str(value["English"]).strip()
+        # If bilingual text with hindi key but no english, use hindi
+        elif "hindi" in value:
+            return str(value["hindi"]).strip()
+        elif "Hindi" in value:
+            return str(value["Hindi"]).strip()
+        else:
+            # Convert the whole object to JSON string
+            return json.dumps(value)
+    
+    return str(value).strip() if value else value
+
+
 class GeminiService:
     """Service class for interacting with Google Gemini API"""
     
     def __init__(self):
         """Initialize Gemini API with configuration"""
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
     
     def extract_text_from_image(self, image_path):
         """
@@ -133,7 +165,7 @@ Respond ONLY with JSON, no additional text."""
                 ]
             )
             
-            # Parse the response
+            # Parse the response - response.text is always a string
             response_text = response.text.strip()
             
             # Try to extract JSON from the response
@@ -168,6 +200,20 @@ Respond ONLY with JSON, no additional text."""
                     "extracted_fields": {},
                     "analysis_summary": "Raw text extraction only"
                 }
+            
+            # Normalize bilingual fields that Gemini 2.5 Flash may return as objects
+            # This fixes the React error: "Objects are not valid as a React child"
+            bilingual_fields = ['name', 'address', 'full_text', 'analysis_summary', 'date_of_birth', 'gender']
+            for field in bilingual_fields:
+                if field in parsed_response:
+                    parsed_response[field] = normalize_bilingual_field(parsed_response[field])
+            
+            # Also normalize nested fields in extracted_fields if present
+            if 'extracted_fields' in parsed_response and isinstance(parsed_response['extracted_fields'], dict):
+                for key in parsed_response['extracted_fields']:
+                    parsed_response['extracted_fields'][key] = normalize_bilingual_field(
+                        parsed_response['extracted_fields'][key]
+                    )
             
             # Validate Aadhaar number using step-by-step algorithm
             aadhaar_num = parsed_response.get('aadhaar_number')
