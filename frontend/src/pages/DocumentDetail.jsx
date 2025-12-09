@@ -40,8 +40,25 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
+// Helper to normalize bilingual values from Gemini (may be {hindi, english} objects)
+function normalizeValue(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        // Handle bilingual objects
+        if (value.english) return value.english;
+        if (value.English) return value.English;
+        if (value.hindi) return value.hindi;
+        if (value.Hindi) return value.Hindi;
+        // For other objects, convert to JSON string
+        return JSON.stringify(value);
+    }
+    return value;
+}
+
 // Info Row Component
 function InfoRow({ label, value, icon: Icon }) {
+    const displayValue = normalizeValue(value);
+
     return (
         <div className="flex items-start gap-3 py-3 border-b border-secondary-100 last:border-0">
             {Icon && (
@@ -51,7 +68,7 @@ function InfoRow({ label, value, icon: Icon }) {
             )}
             <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-secondary-500 uppercase tracking-wide mb-1">{label}</p>
-                <p className="text-sm font-medium text-secondary-900 break-words">{value || 'N/A'}</p>
+                <p className="text-sm font-medium text-secondary-900 break-words">{displayValue || 'N/A'}</p>
             </div>
         </div>
     );
@@ -69,7 +86,7 @@ function FraudIndicator({ indicator, severity }) {
         <div className={`p-3 rounded-lg border ${severityColors[severity] || severityColors.medium}`}>
             <div className="flex items-center gap-2">
                 <WarningIcon size={16} />
-                <span className="text-sm font-medium">{indicator}</span>
+                <span className="text-sm font-medium">{normalizeValue(indicator)}</span>
             </div>
         </div>
     );
@@ -79,7 +96,7 @@ function FraudIndicator({ indicator, severity }) {
 function YoloDetectionItem({ detection }) {
     const confidencePercent = (detection.confidence * 100).toFixed(1);
     const isHighConfidence = detection.confidence >= 0.7;
-    
+
     return (
         <div className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg">
             <div className="flex items-center gap-3">
@@ -98,9 +115,9 @@ function YoloDetectionItem({ detection }) {
 // CV Analysis Item Component
 function CVAnalysisItem({ title, data }) {
     if (!data || typeof data !== 'object') return null;
-    
+
     const isSuspicious = data.suspicious;
-    
+
     return (
         <div className={`p-3 rounded-lg border ${isSuspicious ? 'bg-warning-50 border-warning-200' : 'bg-success-50 border-success-200'}`}>
             <div className="flex items-center justify-between mb-2">
@@ -129,7 +146,7 @@ function DocumentDetail() {
     const navigate = useNavigate();
     const { isAuthenticated, loading: authLoading } = useAuth();
     const { showSuccess, showError, showConfirm } = useToast();
-    
+
     const [document, setDocument] = useState(null);
     const [loading, setLoading] = useState(true);
     const [analyzing, setAnalyzing] = useState(false);
@@ -139,7 +156,7 @@ function DocumentDetail() {
     useEffect(() => {
         // Wait for auth to finish loading
         if (authLoading) return;
-        
+
         if (!isAuthenticated) {
             setShowAuthModal(true);
             setLoading(false);
@@ -230,7 +247,7 @@ function DocumentDetail() {
     const metadata = document.metadata || {};
     const fraudDetection = metadata.fraud_detection || {};
     const confidenceScore = metadata.confidence_score || 0;
-    
+
     // Map extracted data from direct metadata fields (backend stores them directly, not nested)
     const extractedData = {
         name: metadata.name,
@@ -240,34 +257,34 @@ function DocumentDetail() {
         address: metadata.address,
         ...metadata.extracted_fields // Include any additional extracted fields
     };
-    
+
     // Determine if document is fraudulent based on backend data
     // Priority: 1. Gemini's is_authentic verdict, 2. Risk level, 3. Critical (non-CV) fraud indicators
     // CV-based indicators (compression, noise, edge) should NOT mark document as fraud
     const cvKeywords = ['compression', 'noise', 'copy-paste', 'edge'];
-    const criticalIndicators = (metadata.fraud_indicators || []).filter(
-        ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw))
-    );
-    
+    const criticalIndicators = (metadata.fraud_indicators || [])
+        .map(ind => normalizeValue(ind) || '')
+        .filter(ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw)));
+
     // Document is fraud ONLY if:
     // 1. Gemini explicitly said is_authentic = false, OR
     // 2. Risk level is high/medium AND there are critical (non-CV) indicators
-    const isFraud = metadata.is_authentic === false || 
-                   (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
-                   (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
-    
+    const isFraud = metadata.is_authentic === false ||
+        (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
+        (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
+
     // Combine fraud indicators from Gemini and YOLO
     const allFraudIndicators = [
         ...(metadata.fraud_indicators || []),
         ...(fraudDetection.fraud_indicators || [])
     ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
-    
+
     // YOLO detections from fraud_detection object
     const yoloDetections = fraudDetection.yolo_detections || [];
-    
+
     // CV analysis details from fraud_detection object
     const cvAnalysis = fraudDetection.cv_analysis || {};
-    
+
     // Check if we have any extracted data
     const hasExtractedData = Object.values(extractedData).some(v => v && v !== '');
 
@@ -372,7 +389,7 @@ function DocumentDetail() {
                             </Card.Header>
                             <div className="bg-secondary-50 rounded-xl p-4 max-h-64 overflow-y-auto">
                                 <pre className="text-sm text-secondary-700 whitespace-pre-wrap font-mono">
-                                    {metadata.full_text}
+                                    {normalizeValue(metadata.full_text)}
                                 </pre>
                             </div>
                         </Card>
@@ -419,21 +436,19 @@ function DocumentDetail() {
                                 <div className="mt-4 pt-4 border-t border-secondary-200">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium text-secondary-700">Fraud Risk Score</span>
-                                        <span className={`text-lg font-bold ${
-                                            fraudDetection.risk_score < 0.3 ? 'text-success-600' :
+                                        <span className={`text-lg font-bold ${fraudDetection.risk_score < 0.3 ? 'text-success-600' :
                                             fraudDetection.risk_score < 0.6 ? 'text-warning-600' :
-                                            'text-error-600'
-                                        }`}>
+                                                'text-error-600'
+                                            }`}>
                                             {(fraudDetection.risk_score * 100).toFixed(1)}%
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 mt-2">
                                         <span className="text-xs text-secondary-500">Risk Level:</span>
-                                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                                            fraudDetection.risk_level === 'low' ? 'bg-success-100 text-success-700' :
+                                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${fraudDetection.risk_level === 'low' ? 'bg-success-100 text-success-700' :
                                             fraudDetection.risk_level === 'medium' ? 'bg-warning-100 text-warning-700' :
-                                            'bg-error-100 text-error-700'
-                                        }`}>
+                                                'bg-error-100 text-error-700'
+                                            }`}>
                                             {fraudDetection.risk_level?.toUpperCase() || 'N/A'}
                                         </span>
                                     </div>
@@ -453,12 +468,11 @@ function DocumentDetail() {
                         ${document.status === 'failed' ? 'bg-error-50 border-error-200' : ''}
                     `}>
                         <div className="flex items-center gap-4">
-                            <div className={`p-4 rounded-2xl ${
-                                document.status === 'completed' && !isFraud ? 'bg-success-100' :
+                            <div className={`p-4 rounded-2xl ${document.status === 'completed' && !isFraud ? 'bg-success-100' :
                                 document.status === 'completed' && isFraud ? 'bg-error-100' :
-                                document.status === 'processing' ? 'bg-warning-100' :
-                                'bg-secondary-100'
-                            }`}>
+                                    document.status === 'processing' ? 'bg-warning-100' :
+                                        'bg-secondary-100'
+                                }`}>
                                 {document.status === 'completed' && !isFraud && <CheckIcon size={32} className="text-success-600" />}
                                 {document.status === 'completed' && isFraud && <ErrorIcon size={32} className="text-error-600" />}
                                 {document.status === 'processing' && <ClockIcon size={32} className="text-warning-600" />}
@@ -488,20 +502,19 @@ function DocumentDetail() {
                             <div className="mt-4 pt-4 border-t border-secondary-200">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm font-medium text-secondary-700">Confidence Score</span>
-                                    <span className={`text-lg font-bold ${
-                                        confidenceScore >= 0.9 ? 'text-success-600' :
+                                    <span className={`text-lg font-bold ${confidenceScore >= 0.9 ? 'text-success-600' :
                                         confidenceScore >= 0.7 ? 'text-warning-600' :
-                                        'text-error-600'
-                                    }`}>
+                                            'text-error-600'
+                                        }`}>
                                         {(confidenceScore * 100).toFixed(1)}%
                                     </span>
                                 </div>
-                                <ProgressBar 
-                                    value={confidenceScore * 100} 
+                                <ProgressBar
+                                    value={confidenceScore * 100}
                                     variant={
                                         confidenceScore >= 0.9 ? 'success' :
-                                        confidenceScore >= 0.7 ? 'warning' :
-                                        'error'
+                                            confidenceScore >= 0.7 ? 'warning' :
+                                                'error'
                                     }
                                 />
                             </div>
@@ -522,9 +535,9 @@ function DocumentDetail() {
                             </Card.Header>
                             <div className="space-y-2">
                                 {allFraudIndicators.map((indicator, index) => (
-                                    <FraudIndicator 
-                                        key={index} 
-                                        indicator={indicator} 
+                                    <FraudIndicator
+                                        key={index}
+                                        indicator={indicator}
                                         severity={fraudDetection.risk_level || 'medium'}
                                     />
                                 ))}
@@ -545,9 +558,8 @@ function DocumentDetail() {
                                 {metadata.is_authentic !== null && metadata.is_authentic !== undefined && (
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm text-secondary-600">Authenticity:</span>
-                                        <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
-                                            metadata.is_authentic ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'
-                                        }`}>
+                                        <span className={`text-sm font-semibold px-2 py-1 rounded-full ${metadata.is_authentic ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'
+                                            }`}>
                                             {metadata.is_authentic ? 'Authentic' : 'Suspicious'}
                                         </span>
                                     </div>
@@ -558,7 +570,7 @@ function DocumentDetail() {
                                         <div className="flex flex-wrap gap-2">
                                             {metadata.quality_issues.map((issue, idx) => (
                                                 <span key={idx} className="text-xs bg-warning-50 text-warning-700 px-2 py-1 rounded">
-                                                    {issue}
+                                                    {normalizeValue(issue)}
                                                 </span>
                                             ))}
                                         </div>
@@ -583,9 +595,9 @@ function DocumentDetail() {
                             <div className="space-y-1">
                                 {extractedData.name && <InfoRow label="Name" value={extractedData.name} />}
                                 {extractedData.aadhaar_number && (
-                                    <InfoRow 
-                                        label="Aadhaar Number" 
-                                        value={extractedData.aadhaar_number?.replace(/(\d{4})/g, '$1 ').trim()} 
+                                    <InfoRow
+                                        label="Aadhaar Number"
+                                        value={extractedData.aadhaar_number?.replace(/(\d{4})/g, '$1 ').trim()}
                                     />
                                 )}
                                 {extractedData.dob && <InfoRow label="Date of Birth" value={extractedData.dob} />}
@@ -612,10 +624,10 @@ function DocumentDetail() {
                     </Card>
                 </motion.div>
             </div>
-            
+
             {/* Auth Modal for non-authenticated users */}
-            <AuthModal 
-                isOpen={showAuthModal} 
+            <AuthModal
+                isOpen={showAuthModal}
                 onClose={() => {
                     setShowAuthModal(false);
                     navigate('/documents');

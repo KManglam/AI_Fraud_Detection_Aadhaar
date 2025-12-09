@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { documentAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
-import { 
-    UploadIcon, 
-    CheckIcon, 
-    ErrorIcon, 
-    WarningIcon, 
+import {
+    UploadIcon,
+    CheckIcon,
+    ErrorIcon,
+    WarningIcon,
     DocumentIcon,
     ChartIcon,
     TrendUpIcon,
@@ -49,6 +49,19 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
+// Helper to normalize bilingual values from Gemini (may be {hindi, english} objects)
+function normalizeValue(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        if (value.english) return value.english;
+        if (value.English) return value.English;
+        if (value.hindi) return value.hindi;
+        if (value.Hindi) return value.Hindi;
+        return JSON.stringify(value);
+    }
+    return value;
+}
+
 // Stat Card Component
 function StatCard({ title, value, icon: Icon, trend, trendValue, color, loading, onClick }) {
     const colorClasses = {
@@ -70,8 +83,8 @@ function StatCard({ title, value, icon: Icon, trend, trendValue, color, loading,
     }
 
     return (
-        <Card 
-            className={`${colorClasses[color]} border-2 cursor-pointer transition-transform hover:scale-105`} 
+        <Card
+            className={`${colorClasses[color]} border-2 cursor-pointer transition-transform hover:scale-105`}
             hover
             onClick={onClick}
         >
@@ -118,8 +131,8 @@ function UploadZone({ onUpload, uploading }) {
             className={`
                 relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer
                 transition-all duration-300 ease-out
-                ${dragOver 
-                    ? 'border-primary-500 bg-primary-50 scale-[1.02]' 
+                ${dragOver
+                    ? 'border-primary-500 bg-primary-50 scale-[1.02]'
                     : 'border-secondary-300 bg-white hover:border-primary-400 hover:bg-primary-50/50'
                 }
                 ${uploading ? 'pointer-events-none opacity-70' : ''}
@@ -139,23 +152,23 @@ function UploadZone({ onUpload, uploading }) {
                 onChange={(e) => onUpload(Array.from(e.target.files))}
                 className="hidden"
             />
-            
+
             <div className="flex flex-col items-center">
-                <motion.div 
+                <motion.div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2 ${dragOver ? 'bg-primary-100' : 'bg-secondary-100'}`}
                     animate={uploading ? { rotate: 360 } : {}}
                     transition={{ duration: 2, repeat: uploading ? Infinity : 0, ease: 'linear' }}
                 >
                     <UploadIcon size={24} className={dragOver ? 'text-primary-600' : 'text-secondary-500'} />
                 </motion.div>
-                
+
                 <h3 className="text-base font-semibold text-secondary-900 mb-0.5">
                     {uploading ? 'Uploading...' : 'Drop Aadhaar Cards Here'}
                 </h3>
                 <p className="text-xs text-secondary-500 mb-2">
                     or click to browse from your computer
                 </p>
-                
+
                 <div className="flex items-center gap-2 text-xs text-secondary-400">
                     <span className="px-2 py-0.5 bg-secondary-100 rounded">PNG</span>
                     <span className="px-2 py-0.5 bg-secondary-100 rounded">JPG</span>
@@ -172,27 +185,27 @@ function RecentDocItem({ doc }) {
     // Determine the actual verification status based on metadata
     const metadata = doc.metadata || {};
     const fraudDetection = metadata.fraud_detection || {};
-    
+
     // CV-based indicators should not affect the status
     const cvKeywords = ['compression', 'noise', 'copy-paste', 'edge'];
-    const criticalIndicators = (metadata.fraud_indicators || []).filter(
-        ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw))
-    );
-    
+    const criticalIndicators = (metadata.fraud_indicators || [])
+        .map(ind => normalizeValue(ind) || '')
+        .filter(ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw)));
+
     // Determine verification status
     let verificationStatus = doc.status; // Default to processing status
-    
+
     if (doc.status === 'completed') {
         // Check actual verification result
-        const isFraud = metadata.is_authentic === false || 
-                       (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
-                       (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
-        
+        const isFraud = metadata.is_authentic === false ||
+            (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
+            (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
+
         verificationStatus = isFraud ? 'suspicious' : 'verified';
     }
-    
+
     return (
-        <Link 
+        <Link
             to={`/documents/${doc.id}`}
             className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary-50 transition-colors group"
         >
@@ -210,8 +223,8 @@ function RecentDocItem({ doc }) {
                     {doc.file_name}
                 </p>
                 <p className="text-xs text-secondary-500">
-                    {new Date(doc.uploaded_at).toLocaleDateString('en-US', { 
-                        month: 'short', 
+                    {new Date(doc.uploaded_at).toLocaleDateString('en-US', {
+                        month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
@@ -250,7 +263,7 @@ function Dashboard() {
     useEffect(() => {
         // Wait for auth to finish loading before fetching data
         if (authLoading) return;
-        
+
         // For authenticated users, fetch their documents
         // For non-authenticated users, show empty dashboard
         if (isAuthenticated) {
@@ -272,17 +285,17 @@ function Dashboard() {
 
             // CV-based indicators should not affect the status
             const cvKeywords = ['compression', 'noise', 'copy-paste', 'edge'];
-            
+
             // Helper function to determine if document is suspicious
             const isDocSuspicious = (doc) => {
                 const metadata = doc.metadata || {};
                 const fraudDetection = metadata.fraud_detection || {};
-                const criticalIndicators = (metadata.fraud_indicators || []).filter(
-                    ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw))
-                );
-                return metadata.is_authentic === false || 
-                       (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
-                       (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
+                const criticalIndicators = (metadata.fraud_indicators || [])
+                    .map(ind => normalizeValue(ind) || '')
+                    .filter(ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw)));
+                return metadata.is_authentic === false ||
+                    (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
+                    (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
             };
 
             const newStats = docs.reduce((acc, doc) => {
@@ -335,25 +348,25 @@ function Dashboard() {
 
     const handleUpload = async (files) => {
         if (files.length === 0) return;
-        
+
         // Check if user is authenticated before uploading
         if (!isAuthenticated) {
             setShowAuthModal(true);
             return;
         }
-        
+
         try {
             setUploading(true);
             showNotification(`Uploading ${files.length} file(s)...`, 'info');
-            
+
             const result = await documentAPI.uploadDocuments(files, false);
             showNotification(`Successfully uploaded ${result.count || files.length} file(s)!`, 'success');
-            
+
             // Optimistically update UI with new documents
             if (result.documents && result.documents.length > 0) {
                 // Update recent docs list
                 setRecentDocs(prev => [...result.documents, ...prev].slice(0, 5));
-                
+
                 // Update stats
                 setStats(prev => ({
                     ...prev,
@@ -362,9 +375,9 @@ function Dashboard() {
                     processing: prev.processing // Processing count stays same until analysis starts
                 }));
             }
-            
+
             await fetchDashboardData();
-            
+
             // Auto-analyze
             const uploadedDocIds = result.documents?.map(doc => doc.id) || [];
             if (uploadedDocIds.length > 0) {
@@ -384,29 +397,29 @@ function Dashboard() {
         if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
         }
-        
+
         setAnalyzingDocIds(docIds);
-        
+
         // Poll every 2 seconds for status updates
         pollingIntervalRef.current = setInterval(async () => {
             try {
                 const docs = await documentAPI.getAllDocuments();
-                
+
                 // Update recent docs and stats with latest data
                 setRecentDocs(docs.slice(0, 5));
-                
+
                 // CV-based indicators should not affect the status
                 const cvKeywords = ['compression', 'noise', 'copy-paste', 'edge'];
-                
+
                 const isDocSuspicious = (doc) => {
                     const metadata = doc.metadata || {};
                     const fraudDetection = metadata.fraud_detection || {};
-                    const criticalIndicators = (metadata.fraud_indicators || []).filter(
-                        ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw))
-                    );
-                    return metadata.is_authentic === false || 
-                           (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
-                           (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
+                    const criticalIndicators = (metadata.fraud_indicators || [])
+                        .map(ind => normalizeValue(ind) || '')
+                        .filter(ind => !cvKeywords.some(kw => ind.toLowerCase().includes(kw)));
+                    return metadata.is_authentic === false ||
+                        (fraudDetection.risk_level === 'high' && criticalIndicators.length > 0) ||
+                        (fraudDetection.risk_level === 'medium' && criticalIndicators.length > 0);
                 };
 
                 const newStats = docs.reduce((acc, doc) => {
@@ -426,7 +439,7 @@ function Dashboard() {
                 }, { total: 0, completed: 0, processing: 0, failed: 0, uploaded: 0, verified: 0, suspicious: 0 });
 
                 setStats(newStats);
-                
+
                 // Update chart data
                 setChartData([
                     { name: 'Verified', count: newStats.verified, color: '#10b981' },
@@ -440,13 +453,13 @@ function Dashboard() {
                     { name: 'Pending', value: newStats.processing + newStats.uploaded, color: '#f59e0b' },
                     { name: 'Failed', value: newStats.failed, color: '#6b7280' }
                 ].filter(d => d.value > 0));
-                
+
             } catch (error) {
                 console.error('Polling error:', error);
             }
         }, 2000);
     }, []);
-    
+
     // Stop polling
     const stopPolling = useCallback(() => {
         if (pollingIntervalRef.current) {
@@ -460,17 +473,17 @@ function Dashboard() {
         try {
             setAnalyzing(true);
             showNotification('Auto-analyzing documents...', 'info');
-            
+
             // Start polling for real-time status updates
             startPolling(documentIds);
-            
+
             const result = await documentAPI.batchAnalyze(documentIds);
-            
+
             // Stop polling after analysis completes
             stopPolling();
-            
+
             showNotification(`Analysis complete! ${result.successful} document(s) processed.`, 'success');
-            
+
             await fetchDashboardData();
         } catch (error) {
             console.error('Auto-analysis failed:', error);
@@ -485,28 +498,28 @@ function Dashboard() {
         try {
             setAnalyzing(true);
             const docs = await documentAPI.getAllDocuments();
-            const unanalyzedDocs = docs.filter(doc => 
+            const unanalyzedDocs = docs.filter(doc =>
                 doc.status === 'uploaded' && (!doc.metadata || !doc.metadata.analyzed_at)
             );
-            
+
             if (unanalyzedDocs.length === 0) {
                 showNotification('All documents are already analyzed!', 'success');
                 setAnalyzing(false);
                 return;
             }
-            
+
             const documentIds = unanalyzedDocs.map(doc => doc.id);
-            
+
             // Start polling for real-time status updates
             startPolling(documentIds);
-            
+
             const result = await documentAPI.batchAnalyze(documentIds);
-            
+
             // Stop polling after analysis completes
             stopPolling();
-            
+
             showNotification(`Successfully analyzed ${result.successful} document(s)!`, 'success');
-            
+
             await fetchDashboardData();
         } catch (error) {
             console.error('Batch analysis failed:', error);
@@ -533,12 +546,11 @@ function Dashboard() {
                     initial={{ opacity: 0, y: -20, x: 20 }}
                     animate={{ opacity: 1, y: 0, x: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className={`fixed top-20 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${
-                        notification.type === 'success' ? 'bg-success-50 border-success-200 text-success-800' :
-                        notification.type === 'error' ? 'bg-error-50 border-error-200 text-error-800' :
-                        notification.type === 'warning' ? 'bg-warning-50 border-warning-200 text-warning-800' :
-                        'bg-primary-50 border-primary-200 text-primary-800'
-                    }`}
+                    className={`fixed top-20 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${notification.type === 'success' ? 'bg-success-50 border-success-200 text-success-800' :
+                            notification.type === 'error' ? 'bg-error-50 border-error-200 text-error-800' :
+                                notification.type === 'warning' ? 'bg-warning-50 border-warning-200 text-warning-800' :
+                                    'bg-primary-50 border-primary-200 text-primary-800'
+                        }`}
                 >
                     {notification.type === 'success' && <CheckIcon size={20} />}
                     {notification.type === 'error' && <ErrorIcon size={20} />}
@@ -554,8 +566,8 @@ function Dashboard() {
                     <p className="text-secondary-500 mt-1">Welcome back! Here's your verification overview.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         icon={SearchIcon}
                         onClick={() => window.location.href = '/documents'}
                     >
@@ -566,17 +578,17 @@ function Dashboard() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <StatCard 
-                    title="Total Documents" 
-                    value={stats.total} 
+                <StatCard
+                    title="Total Documents"
+                    value={stats.total}
                     icon={DocumentIcon}
                     color="primary"
                     loading={loading}
                     onClick={() => window.location.href = '/documents'}
                 />
-                <StatCard 
-                    title="Verified" 
-                    value={stats.verified} 
+                <StatCard
+                    title="Verified"
+                    value={stats.verified}
                     icon={CheckIcon}
                     color="success"
                     trend="up"
@@ -584,17 +596,17 @@ function Dashboard() {
                     loading={loading}
                     onClick={() => window.location.href = '/documents?filter=verified'}
                 />
-                <StatCard 
-                    title="Suspicious" 
-                    value={stats.suspicious} 
+                <StatCard
+                    title="Suspicious"
+                    value={stats.suspicious}
                     icon={ErrorIcon}
                     color="error"
                     loading={loading}
                     onClick={() => window.location.href = '/documents?filter=suspicious'}
                 />
-                <StatCard 
-                    title="Processing" 
-                    value={stats.processing + stats.uploaded} 
+                <StatCard
+                    title="Processing"
+                    value={stats.processing + stats.uploaded}
                     icon={ClockIcon}
                     color="warning"
                     loading={loading}
@@ -635,7 +647,7 @@ function Dashboard() {
                                             </p>
                                         </div>
                                     </div>
-                                    <Button 
+                                    <Button
                                         variant="warning"
                                         icon={SearchIcon}
                                         onClick={handleBatchAnalyze}
@@ -666,18 +678,18 @@ function Dashboard() {
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={chartData}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                                <XAxis 
-                                                    dataKey="name" 
+                                                <XAxis
+                                                    dataKey="name"
                                                     tick={{ fill: '#64748b', fontSize: 12 }}
                                                     axisLine={false}
                                                     tickLine={false}
                                                 />
-                                                <YAxis 
+                                                <YAxis
                                                     tick={{ fill: '#64748b', fontSize: 12 }}
                                                     axisLine={false}
                                                     tickLine={false}
                                                 />
-                                                <Tooltip 
+                                                <Tooltip
                                                     contentStyle={{
                                                         backgroundColor: '#fff',
                                                         border: '1px solid #e2e8f0',
@@ -751,17 +763,17 @@ function Dashboard() {
                                     <p className="text-primary-100 text-sm">Success Rate</p>
                                     <p className="text-3xl font-bold">{successRate}%</p>
                                 </div>
-                                <ProgressBar.Circle 
-                                    value={successRate} 
-                                    size={70} 
+                                <ProgressBar.Circle
+                                    value={successRate}
+                                    size={70}
                                     strokeWidth={6}
                                     variant="success"
                                     showLabel={false}
                                 />
                             </div>
-                            <ProgressBar 
-                                value={successRate} 
-                                variant="success" 
+                            <ProgressBar
+                                value={successRate}
+                                variant="success"
                                 size="sm"
                                 className="opacity-80"
                             />
@@ -773,8 +785,8 @@ function Dashboard() {
                         <Card>
                             <Card.Header>
                                 <Card.Title>Recent Documents</Card.Title>
-                                <Link 
-                                    to="/documents" 
+                                <Link
+                                    to="/documents"
                                     className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
                                 >
                                     View all
@@ -800,10 +812,10 @@ function Dashboard() {
                     </motion.div>
                 </div>
             </div>
-            
+
             {/* Auth Modal */}
-            <AuthModal 
-                isOpen={showAuthModal} 
+            <AuthModal
+                isOpen={showAuthModal}
                 onClose={() => setShowAuthModal(false)}
                 message="Please login to upload and analyze Aadhaar documents"
             />

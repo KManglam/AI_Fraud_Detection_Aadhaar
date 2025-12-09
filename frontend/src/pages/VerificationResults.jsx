@@ -43,6 +43,21 @@ const containerVariants = {
 
 // itemVariants removed - reserved for future list animations
 
+// Helper to normalize bilingual values from Gemini (may be {hindi, english} objects)
+function normalizeValue(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        // Handle bilingual objects
+        if (value.english) return value.english;
+        if (value.English) return value.English;
+        if (value.hindi) return value.hindi;
+        if (value.Hindi) return value.Hindi;
+        // For other objects, convert to JSON string
+        return JSON.stringify(value);
+    }
+    return value;
+}
+
 function VerificationResults() {
     const { isAuthenticated, loading: authLoading } = useAuth();
     const [documents, setDocuments] = useState([]);
@@ -62,7 +77,7 @@ function VerificationResults() {
     useEffect(() => {
         // Only check auth after loading is complete
         if (authLoading) return;
-        
+
         if (!isAuthenticated) {
             setShowAuthModal(true);
         } else {
@@ -134,7 +149,7 @@ function VerificationResults() {
 
     const getFilteredDocuments = () => {
         if (!searchTerm) return documents;
-        return documents.filter(doc => 
+        return documents.filter(doc =>
             (doc.file_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             getDocumentType(doc).toLowerCase().includes(searchTerm.toLowerCase()) ||
             getVerificationStatus(doc).toLowerCase().includes(searchTerm.toLowerCase())
@@ -339,7 +354,7 @@ function VerificationResults() {
                                                             <Badge.Status status={getVerificationStatus(doc)} />
                                                         </td>
                                                         <td className="px-6 py-4 text-secondary-600">
-                                                            {doc.metadata?.confidence_score 
+                                                            {doc.metadata?.confidence_score
                                                                 ? `${(doc.metadata.confidence_score * 100).toFixed(0)}%`
                                                                 : '-'
                                                             }
@@ -376,15 +391,15 @@ function VerificationResults() {
                                                                         <dl className="space-y-2 text-sm">
                                                                             <div className="flex justify-between">
                                                                                 <dt className="text-secondary-500">Name:</dt>
-                                                                                <dd className="font-medium text-secondary-900">{doc.metadata?.name || '-'}</dd>
+                                                                                <dd className="font-medium text-secondary-900">{normalizeValue(doc.metadata?.name) || '-'}</dd>
                                                                             </div>
                                                                             <div className="flex justify-between">
                                                                                 <dt className="text-secondary-500">Aadhaar No:</dt>
-                                                                                <dd className="font-medium text-secondary-900">{doc.metadata?.aadhaar_number || '-'}</dd>
+                                                                                <dd className="font-medium text-secondary-900">{normalizeValue(doc.metadata?.aadhaar_number) || '-'}</dd>
                                                                             </div>
                                                                             <div className="flex justify-between">
                                                                                 <dt className="text-secondary-500">DOB:</dt>
-                                                                                <dd className="font-medium text-secondary-900">{doc.metadata?.date_of_birth || '-'}</dd>
+                                                                                <dd className="font-medium text-secondary-900">{normalizeValue(doc.metadata?.date_of_birth) || '-'}</dd>
                                                                             </div>
                                                                         </dl>
                                                                     </div>
@@ -397,7 +412,7 @@ function VerificationResults() {
                                                                                 {doc.metadata.fraud_indicators.map((indicator, idx) => (
                                                                                     <li key={idx} className="text-sm text-error-600 flex items-center gap-2">
                                                                                         <div className="w-1.5 h-1.5 rounded-full bg-error-500" />
-                                                                                        {indicator}
+                                                                                        {normalizeValue(indicator)}
                                                                                     </li>
                                                                                 ))}
                                                                             </ul>
@@ -416,7 +431,7 @@ function VerificationResults() {
                                                                                 {doc.metadata.quality_issues.map((issue, idx) => (
                                                                                     <li key={idx} className="text-sm text-warning-600 flex items-center gap-2">
                                                                                         <div className="w-1.5 h-1.5 rounded-full bg-warning-500" />
-                                                                                        {issue}
+                                                                                        {normalizeValue(issue)}
                                                                                     </li>
                                                                                 ))}
                                                                             </ul>
@@ -507,10 +522,10 @@ function VerificationResults() {
                     )}
                 </AnimatePresence>
             </div>
-            
+
             {/* Auth Modal for non-authenticated users */}
-            <AuthModal 
-                isOpen={showAuthModal} 
+            <AuthModal
+                isOpen={showAuthModal}
                 onClose={() => setShowAuthModal(false)}
                 message="Please login to view verification results"
             />
