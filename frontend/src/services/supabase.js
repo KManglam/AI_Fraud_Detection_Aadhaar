@@ -8,9 +8,9 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'https://xnrnhgzdckbrezyudipf.supabase.co';
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhucm5oZ3pkY2ticmV6eXVkaXBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQzNDEsImV4cCI6MjA3OTkwMDM0MX0.CCxeKMFlx0BMREgXqbC8QLmXisOaeb44YlfzwWEMdlI';
+// Supabase configuration - Must match backend configuration
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'https://czxedufrdwisjolhnidw.supabase.co';
+const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6eGVkdWZyZHdpc2pvbGhuaWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTU0NzYsImV4cCI6MjA4MTAzMTQ3Nn0.u9PYP3ElcnaenmHMOIIj3iAdIA66VS4g6PlYUab_edw';
 
 // Create Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -40,7 +40,7 @@ export const supabaseAuth = {
                 data: metadata,
             },
         });
-        
+
         if (error) throw error;
         return data;
     },
@@ -55,7 +55,7 @@ export const supabaseAuth = {
             email,
             password,
         });
-        
+
         if (error) throw error;
         return data;
     },
