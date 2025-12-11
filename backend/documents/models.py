@@ -52,7 +52,7 @@ class AadhaarDocument(models.Model):
     error_message = models.TextField(null=True, blank=True)
     
     # Batch processing support
-    batch_id = models.CharField(max_length=100, null=True, blank=True, db_index=True,
+    batch_id = models.CharField(max_length=255, null=True, blank=True, db_index=True,
                                 help_text="Group ID for batch processing")
     batch_position = models.IntegerField(null=True, blank=True,
                                          help_text="Position in batch")
