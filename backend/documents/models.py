@@ -24,9 +24,9 @@ class AadhaarDocument(models.Model):
     )
     
     # File fields (local storage)
-    original_file = models.ImageField(upload_to='raw/%Y/%m/%d/')
-    preprocessed_file = models.ImageField(upload_to='processed/%Y/%m/%d/', null=True, blank=True)
-    thumbnail = models.ImageField(upload_to='thumbnails/%Y/%m/%d/', null=True, blank=True)
+    original_file = models.ImageField(upload_to='raw/%Y/%m/%d/', max_length=500)
+    preprocessed_file = models.ImageField(upload_to='processed/%Y/%m/%d/', null=True, blank=True, max_length=500)
+    thumbnail = models.ImageField(upload_to='thumbnails/%Y/%m/%d/', null=True, blank=True, max_length=500)
     
     # Supabase Storage fields
     STORAGE_TYPE_CHOICES = [
