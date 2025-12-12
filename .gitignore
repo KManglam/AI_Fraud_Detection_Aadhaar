@@ -188,3 +188,9 @@ backend\media\
 
 # datasets
 datasets
+
+supabase.txt
+
+.venv_aadharAuth
+
+temp

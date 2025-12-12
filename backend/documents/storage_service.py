@@ -131,19 +131,20 @@ class StorageService:
             'storage_type': 'local'
         }
     
-    def get_file_url(self, storage_path: str, signed: bool = False, expires_in: int = 3600) -> str:
+    def get_file_url(self, storage_path: str, signed: bool = True, expires_in: int = 3600) -> str:
         """
         Get URL for a file
         
         Args:
             storage_path: Path to the file
-            signed: Whether to return a signed URL (for private files)
-            expires_in: Expiration time in seconds (for signed URLs)
+            signed: Whether to return a signed URL (default: True for private buckets)
+            expires_in: Expiration time in seconds (default: 1 hour)
             
         Returns:
             URL string
         """
         if self.use_supabase:
+            # Use signed URLs by default for private buckets
             if signed:
                 return self.supabase_storage.get_signed_url(storage_path, expires_in)
             return self.supabase_storage.get_public_url(storage_path)

@@ -156,6 +156,27 @@ class ImagePreprocessor:
             None
         )
     
+    def to_bytes(self, format='JPEG', quality=90):
+        """
+        Convert PIL Image to bytes for storage service uploads
+        
+        Args:
+            format: Image format (JPEG, PNG, etc.)
+            quality: Quality setting (1-100)
+            
+        Returns:
+            tuple: (bytes, content_type)
+        """
+        output = BytesIO()
+        self.image.save(output, format=format, quality=quality)
+        output.seek(0)
+        
+        content_type = f'image/{format.lower()}'
+        if format.lower() == 'jpeg':
+            content_type = 'image/jpeg'
+        
+        return output.getvalue(), content_type
+    
     def process_all(self):
         """
         Run all preprocessing steps

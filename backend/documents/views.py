@@ -69,7 +69,14 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
         
         Returns:
         - List of created document objects
+        
+        Storage:
+        - Uses Supabase Storage when USE_SUPABASE_STORAGE=true
+        - Uses local filesystem when USE_SUPABASE_STORAGE=false
         """
+        from django.conf import settings as django_settings
+        from io import BytesIO
+        
         # Handle both single file and multiple files
         files = request.FILES.getlist('files')
         if not files:
@@ -90,40 +97,121 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
         
         auto_analyze = request.data.get('auto_analyze', 'true').lower() == 'true'
         
-        created_documents = []
+        # Get storage service (handles both local and Supabase based on settings)
+        storage_service = get_storage_service()
+        use_supabase = storage_service.use_supabase
         
-        with transaction.atomic():
-            for idx, file in enumerate(files):
-                try:
-                    # Create document record with user association
-                    document = AadhaarDocument.objects.create(
-                        user=request.user,
-                        original_file=file,
-                        file_name=file.name,
-                        file_size=file.size,
-                        status='uploaded',
-                        batch_id=batch_id,
-                        batch_position=idx if batch_id else None,
-                    )
+        created_documents = []
+        failed_files = []
+        
+        for idx, file in enumerate(files):
+            try:
+                # Each file gets its own transaction to avoid breaking the entire batch
+                with transaction.atomic():
+                    # Read file bytes once for reuse
+                    file_bytes = file.read()
+                    file.seek(0)  # Reset for potential Django ImageField use
                     
-                    # Preprocess the image
-                    preprocessor = ImagePreprocessor(document.original_file.path)
-                    preprocess_result = preprocessor.process_all()
-                    
-                    # Save preprocessed image
-                    preprocessed_filename = f"proc_{document.id}_{file.name}"
-                    preprocessed_path = os.path.join('media', 'processed', preprocessed_filename)
-                    preprocessor.save_to_file(preprocessed_path)
-                    document.preprocessed_file = f"processed/{preprocessed_filename}"
-                    
-                    # Save thumbnail
-                    thumb_preprocessor = ImagePreprocessor(document.original_file.path)
-                    thumb = thumb_preprocessor.create_thumbnail()
-                    thumb_filename = f"thumb_{document.id}_{file.name}"
-                    thumb_path = os.path.join('media', 'thumbnails', thumb_filename)
-                    os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
-                    thumb.save(thumb_path, quality=85)
-                    document.thumbnail = f"thumbnails/{thumb_filename}"
+                    if use_supabase:
+                        # === SUPABASE STORAGE MODE ===
+                        # Create document record WITHOUT local file (will set paths later)
+                        document = AadhaarDocument.objects.create(
+                            user=request.user,
+                            file_name=file.name,
+                            file_size=file.size,
+                            status='uploaded',
+                            batch_id=batch_id,
+                            batch_position=idx if batch_id else None,
+                            storage_type='supabase',
+                        )
+                        
+                        # Upload original file to Supabase
+                        original_result = storage_service.upload_file(
+                            file_data=file_bytes,
+                            user_id=request.user.id,
+                            document_id=document.id,
+                            filename=file.name,
+                            folder='raw',
+                            content_type=file.content_type
+                        )
+                        document.supabase_original_path = original_result['path']
+                        document.save()
+                        
+                        # Preprocess the image from bytes
+                        preprocessor = ImagePreprocessor(BytesIO(file_bytes))
+                        preprocess_result = preprocessor.process_all()
+                        
+                        # Get preprocessed image bytes and upload to Supabase
+                        processed_bytes, processed_content_type = preprocessor.to_bytes()
+                        processed_filename = f"proc_{document.id}_{file.name}"
+                        processed_result = storage_service.upload_file(
+                            file_data=processed_bytes,
+                            user_id=request.user.id,
+                            document_id=document.id,
+                            filename=processed_filename,
+                            folder='processed',
+                            content_type=processed_content_type
+                        )
+                        document.supabase_processed_path = processed_result['path']
+                        
+                        # Create thumbnail and upload to Supabase
+                        thumb_preprocessor = ImagePreprocessor(BytesIO(file_bytes))
+                        thumb = thumb_preprocessor.create_thumbnail()
+                        thumb_bytes_io = BytesIO()
+                        thumb.save(thumb_bytes_io, format='JPEG', quality=85)
+                        thumb_bytes_io.seek(0)  # Reset pointer to beginning
+                        thumb_bytes = thumb_bytes_io.getvalue()
+                        
+                        logger.info(f"Thumbnail size: {len(thumb_bytes)} bytes for document {document.id}")
+                        
+                        thumb_filename = f"thumb_{document.id}_{file.name}"
+                        thumb_result = storage_service.upload_file(
+                            file_data=thumb_bytes,
+                            user_id=request.user.id,
+                            document_id=document.id,
+                            filename=thumb_filename,
+                            folder='thumbnails',
+                            content_type='image/jpeg'
+                        )
+                        document.supabase_thumbnail_path = thumb_result['path']
+                        logger.info(f"Thumbnail uploaded to: {thumb_result['path']}")
+                        
+                        logger.info(f"Uploaded document {document.id} to Supabase: {original_result['path']}")
+                        
+                    else:
+                        # === LOCAL STORAGE MODE ===
+                        # Create document record with local file (Django ImageField)
+                        document = AadhaarDocument.objects.create(
+                            user=request.user,
+                            original_file=file,
+                            file_name=file.name,
+                            file_size=file.size,
+                            status='uploaded',
+                            batch_id=batch_id,
+                            batch_position=idx if batch_id else None,
+                            storage_type='local',
+                        )
+                        
+                        # Preprocess the image from local file path
+                        preprocessor = ImagePreprocessor(document.original_file.path)
+                        preprocess_result = preprocessor.process_all()
+                        
+                        # Save preprocessed image locally
+                        preprocessed_filename = f"proc_{document.id}_{file.name}"
+                        preprocessed_path = os.path.join('media', 'processed', preprocessed_filename)
+                        preprocessor.save_to_file(preprocessed_path)
+                        document.preprocessed_file = f"processed/{preprocessed_filename}"
+                        
+                        # Save thumbnail locally
+                        thumb_preprocessor = ImagePreprocessor(document.original_file.path)
+                        thumb = thumb_preprocessor.create_thumbnail()
+                        thumb_filename = f"thumb_{document.id}_{file.name}"
+                        thumb_path = os.path.join('media', 'thumbnails', thumb_filename)
+                        os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+                        thumb.save(thumb_path, quality=85)
+                        document.thumbnail = f"thumbnails/{thumb_filename}"
+                        
+                        logger.info(f"Stored document {document.id} locally")
                     
                     document.status = 'processing'
                     document.save()
@@ -144,26 +232,44 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
                     
                     created_documents.append(document)
                     
-                except Exception as e:
-                    if 'document' in locals():
-                        document.status = 'failed'
-                        document.error_message = str(e)
-                        document.save()
-                    
-                    return Response(
-                        {'error': f'Failed to process {file.name}: {str(e)}'},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
+            except Exception as e:
+                # Log the error and continue with next file
+                logger.error(f"Failed to process {file.name}: {str(e)}")
+                failed_files.append({'file_name': file.name, 'error': str(e)})
+                
+                # Try to mark document as failed if it was created (outside the failed transaction)
+                try:
+                    if 'document' in locals() and document.id:
+                        AadhaarDocument.objects.filter(id=document.id).update(
+                            status='failed',
+                            error_message=str(e)[:500]
+                        )
+                except Exception:
+                    pass  # Ignore errors when trying to mark as failed
+        
+        # If no documents were created successfully, return error
+        if not created_documents:
+            return Response(
+                {'error': f'Failed to process all files. Errors: {failed_files}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         # Serialize and return created documents
         serializer = self.get_serializer(created_documents, many=True, context={'request': request})
         
-        return Response({
+        response_data = {
             'success': True,
             'count': len(created_documents),
             'batch_id': batch_id,
+            'storage_type': 'supabase' if use_supabase else 'local',
             'documents': serializer.data
-        }, status=status.HTTP_201_CREATED)
+        }
+        
+        # Include failed files info if any
+        if failed_files:
+            response_data['failed'] = failed_files
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
     def analyze(self, request, pk=None):
@@ -309,6 +415,9 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
             'details': []
         }
         
+        # Get storage service for potential Supabase cleanup
+        storage_service = get_storage_service()
+        
         for document in documents:
             try:
                 doc_info = {
@@ -317,13 +426,25 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
                     'status': 'deleted'
                 }
                 
-                # Delete associated files
-                if document.original_file:
-                    document.original_file.delete(save=False)
-                if document.preprocessed_file:
-                    document.preprocessed_file.delete(save=False)
-                if document.thumbnail:
-                    document.thumbnail.delete(save=False)
+                # Delete associated files based on storage type
+                if document.storage_type == 'supabase':
+                    # Delete from Supabase Storage
+                    if document.supabase_original_path:
+                        storage_service.delete_file(document.supabase_original_path)
+                    if document.supabase_processed_path:
+                        storage_service.delete_file(document.supabase_processed_path)
+                    if document.supabase_thumbnail_path:
+                        storage_service.delete_file(document.supabase_thumbnail_path)
+                    logger.info(f"Deleted document {document.id} from Supabase Storage")
+                else:
+                    # Delete from local storage via Django ImageField
+                    if document.original_file:
+                        document.original_file.delete(save=False)
+                    if document.preprocessed_file:
+                        document.preprocessed_file.delete(save=False)
+                    if document.thumbnail:
+                        document.thumbnail.delete(save=False)
+                    logger.info(f"Deleted document {document.id} from local storage")
                 
                 # Delete the document record
                 document.delete()
@@ -837,140 +958,180 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
             document: AadhaarDocument instance
             metadata: DocumentMetadata instance
         """
+        import tempfile
+        import os
+        
         gemini_service = GeminiService()
+        storage_service = get_storage_service()
         
-        # Use preprocessed file if available, otherwise original
-        image_path = document.preprocessed_file.path if document.preprocessed_file else document.original_file.path
-        
-        # Get analysis from Gemini
-        analysis = gemini_service.extract_text_from_image(image_path)
-        
-        # Update metadata with analysis results
-        metadata.full_text = analysis.get('full_text', '')
-        metadata.aadhaar_number = analysis.get('aadhaar_number')
-        metadata.name = analysis.get('name')
-        metadata.date_of_birth = analysis.get('date_of_birth')
-        metadata.gender = analysis.get('gender')
-        metadata.address = analysis.get('address')
-        metadata.gemini_response = analysis.get('raw_gemini_response', '')
-        metadata.confidence_score = analysis.get('confidence_score')
-        metadata.is_authentic = analysis.get('is_authentic')
-        metadata.fraud_indicators = analysis.get('fraud_indicators', [])
-        
-        # Store design compliance check results
-        design_compliance = analysis.get('design_compliance', {})
-        
-        # Check design compliance - only flag critical missing elements
-        if design_compliance:
-            # Critical elements that MUST be present in any valid Aadhaar
-            critical_elements = [
-                'has_ashoka_emblem', 'has_govt_text', 'has_qr_code', 'has_photo'
-            ]
-            missing_critical = [elem for elem in critical_elements if design_compliance.get(elem) == False]
-            
-            # If format_valid is explicitly false, it's suspicious
-            format_valid = design_compliance.get('format_valid', True)
-            
-            if missing_critical:
-                # Add critical design issues to fraud indicators
-                for elem in missing_critical:
-                    indicator = f"Missing critical element: {elem.replace('has_', '').replace('_', ' ')}"
-                    if indicator not in metadata.fraud_indicators:
-                        metadata.fraud_indicators.append(indicator)
+        # Get image path or download from Supabase
+        if document.storage_type == 'supabase':
+            # Download file from Supabase to temp location for analysis
+            try:
+                # Prefer processed file, fallback to original
+                supabase_path = document.supabase_processed_path or document.supabase_original_path
                 
-                # Override is_authentic only if multiple critical elements are missing
-                if len(missing_critical) >= 2:
-                    metadata.is_authentic = False
-                    if 'Document missing critical Aadhaar elements' not in metadata.fraud_indicators:
-                        metadata.fraud_indicators.append('Document missing critical Aadhaar elements')
-            
-            # If format is explicitly invalid
-            if format_valid == False:
-                metadata.is_authentic = False
-                if 'Document format does not match any valid Aadhaar format' not in metadata.fraud_indicators:
-                    metadata.fraud_indicators.append('Document format does not match any valid Aadhaar format')
+                if not supabase_path:
+                    raise ValueError("No Supabase path found for document")
+                
+                # Download file bytes from Supabase
+                file_bytes = storage_service.download_file(supabase_path)
+                
+                # Create temp file for Gemini processing
+                suffix = os.path.splitext(supabase_path)[1] or '.jpg'
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+                    tmp_file.write(file_bytes)
+                    image_path = tmp_file.name
+                    
+                logger.info(f"Downloaded Supabase file to temp: {image_path}")
+                
+            except Exception as e:
+                logger.error(f"Failed to download from Supabase: {e}")
+                raise ValueError(f"Cannot access document from Supabase: {e}")
+        else:
+            # Use local file path
+            image_path = document.preprocessed_file.path if document.preprocessed_file else document.original_file.path
         
-        # Merge quality issues
-        existing_issues = metadata.quality_issues or []
-        new_issues = analysis.get('quality_issues', [])
-        metadata.quality_issues = list(set(existing_issues + new_issues))
+        # Track if we need to cleanup temp file
+        temp_file_path = image_path if document.storage_type == 'supabase' else None
         
-        # Store design compliance in extracted_fields for frontend display
-        extracted_fields = analysis.get('extracted_fields', {})
-        extracted_fields['design_compliance'] = design_compliance
-        metadata.extracted_fields = extracted_fields
-        
-        # Run YOLO fraud detection (async/optional to avoid slowing down main analysis)
         try:
-            from .fraud_detector import detect_fraud
-            fraud_result = detect_fraud(image_path)
+            # Get analysis from Gemini
+            analysis = gemini_service.extract_text_from_image(image_path)
             
-            # Store fraud detection results
-            metadata.fraud_detection = {
-                'risk_score': fraud_result.get('risk_score', 0.0),
-                'risk_level': fraud_result.get('risk_level', 'low'),
-                'yolo_detections': fraud_result.get('detections', []),
-                'cv_analysis': fraud_result.get('analysis_details', {}),
-                'fraud_indicators': fraud_result.get('fraud_indicators', [])
-            }
+            # Update metadata with analysis results
+            metadata.full_text = analysis.get('full_text', '')
+            metadata.aadhaar_number = analysis.get('aadhaar_number')
+            metadata.name = analysis.get('name')
+            metadata.date_of_birth = analysis.get('date_of_birth')
+            metadata.gender = analysis.get('gender')
+            metadata.address = analysis.get('address')
+            metadata.gemini_response = analysis.get('raw_gemini_response', '')
+            metadata.confidence_score = analysis.get('confidence_score')
+            metadata.is_authentic = analysis.get('is_authentic')
+            metadata.fraud_indicators = analysis.get('fraud_indicators', [])
             
-            # Merge fraud indicators from YOLO detection
-            # But filter out CV-based false positives (compression, noise, edge artifacts)
-            cv_false_positive_keywords = ['compression', 'noise', 'copy-paste', 'edge']
-            yolo_indicators = fraud_result.get('fraud_indicators', [])
+            # Store design compliance check results
+            design_compliance = analysis.get('design_compliance', {})
             
-            # Separate critical indicators from CV-based indicators
-            critical_indicators = [
-                ind for ind in yolo_indicators
-                if not any(kw in ind.lower() for kw in cv_false_positive_keywords)
-            ]
-            cv_indicators = [
-                ind for ind in yolo_indicators
-                if any(kw in ind.lower() for kw in cv_false_positive_keywords)
-            ]
-            
-            if yolo_indicators:
-                all_fraud_indicators = metadata.fraud_indicators or []
-                # Add all indicators for display, but CV ones have lower weight
-                all_fraud_indicators.extend(yolo_indicators)
-                metadata.fraud_indicators = list(set(all_fraud_indicators))
-            
-            # Update authenticity based on fraud detection
-            # IMPORTANT: Respect Gemini's verdict unless YOLO finds actual fraud classes
-            # CV analysis artifacts (compression, noise) should NOT override Gemini
-            fraud_risk_score = fraud_result.get('risk_score', 0.0)
-            has_critical_fraud = len(critical_indicators) > 0
-            
-            # Only override Gemini's "authentic" verdict if:
-            # 1. Risk score is very high (>0.7) AND there are critical (non-CV) indicators
-            # 2. OR Gemini already said it's not authentic
-            if metadata.is_authentic is True:
-                # Gemini said authentic - only override with strong evidence
-                if fraud_risk_score > 0.7 and has_critical_fraud:
+            # Check design compliance - only flag critical missing elements
+            if design_compliance:
+                # Critical elements that MUST be present in any valid Aadhaar
+                critical_elements = [
+                    'has_ashoka_emblem', 'has_govt_text', 'has_qr_code', 'has_photo'
+                ]
+                missing_critical = [elem for elem in critical_elements if design_compliance.get(elem) == False]
+                
+                # If format_valid is explicitly false, it's suspicious
+                format_valid = design_compliance.get('format_valid', True)
+                
+                if missing_critical:
+                    # Add critical design issues to fraud indicators
+                    for elem in missing_critical:
+                        indicator = f"Missing critical element: {elem.replace('has_', '').replace('_', ' ')}"
+                        if indicator not in metadata.fraud_indicators:
+                            metadata.fraud_indicators.append(indicator)
+                    
+                    # Override is_authentic only if multiple critical elements are missing
+                    if len(missing_critical) >= 2:
+                        metadata.is_authentic = False
+                        if 'Document missing critical Aadhaar elements' not in metadata.fraud_indicators:
+                            metadata.fraud_indicators.append('Document missing critical Aadhaar elements')
+                
+                # If format is explicitly invalid
+                if format_valid == False:
                     metadata.is_authentic = False
-                    if 'High fraud risk detected by YOLO' not in metadata.fraud_indicators:
-                        metadata.fraud_indicators.append('High fraud risk detected by YOLO')
-                # Don't change authenticity just for CV artifacts
-            elif metadata.is_authentic is None or metadata.is_authentic is False:
-                # Gemini didn't confirm authentic - use fraud detection result
-                if fraud_risk_score > 0.5 and has_critical_fraud:
-                    metadata.is_authentic = False
-                    if 'Suspicious document' not in metadata.fraud_indicators:
-                        metadata.fraud_indicators.append('Suspicious document')
-                elif fraud_risk_score <= 0.3 and not has_critical_fraud:
-                    # Low risk and no critical indicators - might be authentic
-                    if metadata.is_authentic is None:
-                        metadata.is_authentic = True
+                    if 'Document format does not match any valid Aadhaar format' not in metadata.fraud_indicators:
+                        metadata.fraud_indicators.append('Document format does not match any valid Aadhaar format')
             
-        except Exception as e:
-            # Log error but don't fail the entire analysis
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Fraud detection failed for document {document.id}: {e}")
-            metadata.fraud_detection = {
-                'error': str(e),
-                'risk_score': 0.0,
-                'risk_level': 'low'
-            }
-        
-        metadata.save()
+            # Merge quality issues
+            existing_issues = metadata.quality_issues or []
+            new_issues = analysis.get('quality_issues', [])
+            metadata.quality_issues = list(set(existing_issues + new_issues))
+            
+            # Store design compliance in extracted_fields for frontend display
+            extracted_fields = analysis.get('extracted_fields', {})
+            extracted_fields['design_compliance'] = design_compliance
+            metadata.extracted_fields = extracted_fields
+            
+            # Run YOLO fraud detection (async/optional to avoid slowing down main analysis)
+            try:
+                from .fraud_detector import detect_fraud
+                fraud_result = detect_fraud(image_path)
+                
+                # Store fraud detection results
+                metadata.fraud_detection = {
+                    'risk_score': fraud_result.get('risk_score', 0.0),
+                    'risk_level': fraud_result.get('risk_level', 'low'),
+                    'yolo_detections': fraud_result.get('detections', []),
+                    'cv_analysis': fraud_result.get('analysis_details', {}),
+                    'fraud_indicators': fraud_result.get('fraud_indicators', [])
+                }
+                
+                # Merge fraud indicators from YOLO detection
+                # But filter out CV-based false positives (compression, noise, edge artifacts)
+                cv_false_positive_keywords = ['compression', 'noise', 'copy-paste', 'edge']
+                yolo_indicators = fraud_result.get('fraud_indicators', [])
+                
+                # Separate critical indicators from CV-based indicators
+                critical_indicators = [
+                    ind for ind in yolo_indicators
+                    if not any(kw in ind.lower() for kw in cv_false_positive_keywords)
+                ]
+                cv_indicators = [
+                    ind for ind in yolo_indicators
+                    if any(kw in ind.lower() for kw in cv_false_positive_keywords)
+                ]
+                
+                if yolo_indicators:
+                    all_fraud_indicators = metadata.fraud_indicators or []
+                    # Add all indicators for display, but CV ones have lower weight
+                    all_fraud_indicators.extend(yolo_indicators)
+                    metadata.fraud_indicators = list(set(all_fraud_indicators))
+                
+                # Update authenticity based on fraud detection
+                # IMPORTANT: Respect Gemini's verdict unless YOLO finds actual fraud classes
+                # CV analysis artifacts (compression, noise) should NOT override Gemini
+                fraud_risk_score = fraud_result.get('risk_score', 0.0)
+                has_critical_fraud = len(critical_indicators) > 0
+                
+                # Only override Gemini's "authentic" verdict if:
+                # 1. Risk score is very high (>0.7) AND there are critical (non-CV) indicators
+                # 2. OR Gemini already said it's not authentic
+                if metadata.is_authentic is True:
+                    # Gemini said authentic - only override with strong evidence
+                    if fraud_risk_score > 0.7 and has_critical_fraud:
+                        metadata.is_authentic = False
+                        if 'High fraud risk detected by YOLO' not in metadata.fraud_indicators:
+                            metadata.fraud_indicators.append('High fraud risk detected by YOLO')
+                    # Don't change authenticity just for CV artifacts
+                elif metadata.is_authentic is None or metadata.is_authentic is False:
+                    # Gemini didn't confirm authentic - use fraud detection result
+                    if fraud_risk_score > 0.5 and has_critical_fraud:
+                        metadata.is_authentic = False
+                        if 'Suspicious document' not in metadata.fraud_indicators:
+                            metadata.fraud_indicators.append('Suspicious document')
+                    elif fraud_risk_score <= 0.3 and not has_critical_fraud:
+                        # Low risk and no critical indicators - might be authentic
+                        if metadata.is_authentic is None:
+                            metadata.is_authentic = True
+                
+            except Exception as e:
+                # Log error but don't fail the entire analysis
+                logger.warning(f"Fraud detection failed for document {document.id}: {e}")
+                metadata.fraud_detection = {
+                    'error': str(e),
+                    'risk_score': 0.0,
+                    'risk_level': 'low'
+                }
+            
+            metadata.save()
+            
+        finally:
+            # Cleanup temp file if we created one
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+                    logger.info(f"Cleaned up temp file: {temp_file_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup temp file: {e}")
