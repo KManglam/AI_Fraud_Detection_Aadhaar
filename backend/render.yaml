@@ -5,7 +5,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: "./build.sh"
-    startCommand: "gunicorn aadhaar_system.wsgi:application"
+    startCommand: "gunicorn aadhaar_system.wsgi:application --workers 1 --threads 2 --timeout 120 --max-requests 100 --max-requests-jitter 10"
     healthCheckPath: /health/
     envVars:
       - key: SECRET_KEY

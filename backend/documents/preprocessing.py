@@ -12,9 +12,10 @@ class ImagePreprocessor:
     """Handle image preprocessing operations"""
     
     # Standard dimensions for processed images
-    MAX_WIDTH = 1920
-    MAX_HEIGHT = 1080
-    THUMBNAIL_SIZE = (300, 300)
+    # OPTIMIZED FOR LOW MEMORY (0.5GB RAM) - reduced from 1920x1080
+    MAX_WIDTH = 1280
+    MAX_HEIGHT = 720
+    THUMBNAIL_SIZE = (200, 200)  # Reduced from 300x300
     
     def __init__(self, image_file):
         """
@@ -156,7 +157,7 @@ class ImagePreprocessor:
             None
         )
     
-    def to_bytes(self, format='JPEG', quality=90):
+    def to_bytes(self, format='JPEG', quality=75):  # Reduced from 90 for memory optimization
         """
         Convert PIL Image to bytes for storage service uploads
         

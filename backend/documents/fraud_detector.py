@@ -88,19 +88,18 @@ class FraudDetector:
         Args:
             model_path: Path to the trained YOLO model (.pt file)
             confidence_threshold: Minimum confidence for detections
+            
+        Note:
+            Uses lazy loading - YOLO model is only loaded when detect() is called,
+            not at initialization. This saves ~200MB RAM until fraud detection is needed.
         """
         self.model = None
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
         self.is_loaded = False
+        self._model_searched = False  # Track if we've searched for model
         
-        # Try to find model in default locations
-        if model_path is None:
-            self._find_default_model()
-        
-        # Load the model if available
-        if self.model_path and YOLO_AVAILABLE:
-            self._load_model()
+        # DON'T load model at init - use lazy loading to save memory
     
     def _find_default_model(self):
         """Find model in default locations."""
@@ -151,6 +150,8 @@ class FraudDetector:
             - risk_score: Overall risk score (0-1)
             - risk_level: 'low', 'medium', or 'high'
         """
+        import gc  # For memory cleanup
+        
         result = {
             'detections': [],
             'fraud_indicators': [],
@@ -165,6 +166,14 @@ class FraudDetector:
             result['risk_score'] = 1.0
             result['risk_level'] = 'high'
             return result
+        
+        # LAZY LOADING: Load model on first use (saves ~200MB until needed)
+        if not self._model_searched:
+            self._model_searched = True
+            if self.model_path is None:
+                self._find_default_model()
+            if self.model_path and YOLO_AVAILABLE and not self.is_loaded:
+                self._load_model()
         
         # Run YOLO detection if model is available
         if self.is_loaded and self.model:
@@ -181,6 +190,9 @@ class FraudDetector:
         # Calculate overall risk score
         result['risk_score'] = self._calculate_risk_score(result)
         result['risk_level'] = self._get_risk_level(result['risk_score'])
+        
+        # Free memory after processing (important for low-RAM servers)
+        gc.collect()
         
         # Convert all numpy types to JSON-serializable Python types
         return convert_to_json_serializable(result)

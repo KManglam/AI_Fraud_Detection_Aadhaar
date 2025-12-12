@@ -5,6 +5,7 @@ import google.generativeai as genai
 from django.conf import settings
 import json
 import re
+import gc  # Garbage collection for memory optimization
 from .verhoeff import validate_aadhaar
 
 
@@ -41,12 +42,33 @@ def normalize_bilingual_field(value):
 
 
 class GeminiService:
-    """Service class for interacting with Google Gemini API"""
+    """
+    Service class for interacting with Google Gemini API
+    
+    Uses singleton pattern to ensure only one instance exists,
+    reducing memory footprint on low-RAM servers.
+    """
+    
+    _instance = None
+    _lock = None  # Threading lock for sequential processing
+    
+    def __new__(cls):
+        """Singleton pattern - reuse the same instance"""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
     
     def __init__(self):
-        """Initialize Gemini API with configuration"""
+        """Initialize Gemini API with configuration (only once)"""
+        if self._initialized:
+            return
+            
+        import threading
         genai.configure(api_key=settings.GEMINI_API_KEY)
         self.model = genai.GenerativeModel("gemini-2.5-flash")
+        GeminiService._lock = threading.Lock()
+        self._initialized = True
     
     def extract_text_from_image(self, image_path):
         """
@@ -57,7 +79,18 @@ class GeminiService:
             
         Returns:
             dict: Extracted information including text, fields, and fraud indicators
+            
+        Note:
+            Uses threading lock to ensure sequential processing (one document at a time)
+            to prevent memory exhaustion on low-RAM servers like Render free tier.
         """
+        # Acquire lock to ensure only one document is processed at a time
+        # This prevents OOM errors on low-memory servers (0.5GB RAM)
+        with GeminiService._lock:
+            return self._process_image(image_path)
+    
+    def _process_image(self, image_path):
+        """Internal method that does the actual image processing"""
         try:
             # Read the image file
             with open(image_path, "rb") as f:
@@ -259,6 +292,10 @@ Respond ONLY with JSON, no additional text."""
 
             # Add the raw response for reference
             parsed_response['raw_gemini_response'] = response.text
+            
+            # Free memory explicitly (important for low-RAM servers like Render free tier)
+            del img_bytes
+            gc.collect()
             
             return parsed_response
             
