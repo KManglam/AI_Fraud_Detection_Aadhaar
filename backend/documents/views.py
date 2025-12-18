@@ -10,6 +10,8 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from django.db import transaction
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 import uuid
 import os
 
@@ -52,9 +54,15 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
         """
         Filter documents by authenticated user.
         Unauthenticated users see no documents.
+        Uses select_related for optimized queries.
         """
         if self.request.user.is_authenticated:
-            return AadhaarDocument.objects.filter(user=self.request.user)
+            return (
+                AadhaarDocument.objects
+                .filter(user=self.request.user)
+                .select_related('metadata')  # Optimize: fetch metadata in single query
+                .order_by('-uploaded_at')  # Most recent first
+            )
         return AadhaarDocument.objects.none()
     
     @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])
@@ -279,7 +287,10 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
         Returns:
         - Updated document with analysis results
         """
+        import traceback
+        
         document = self.get_object()
+        logger.info(f"Analyze request for document {document.id}, storage_type={document.storage_type}")
         
         if document.status == 'processing':
             return Response(
@@ -305,6 +316,12 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
             
         except Exception as e:
+            # Log full traceback for debugging
+            logger.error(f"Analyze failed for document {document.id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            print(f"ERROR: {str(e)}")
+            print(traceback.format_exc())
+            
             document.status = 'failed'
             document.error_message = str(e)
             document.save()
@@ -961,18 +978,30 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
         import tempfile
         import os
         
+        logger.info(f"Starting analysis for document {document.id}, storage_type={document.storage_type}")
+        logger.info(f"Document paths: original_file={document.original_file}, preprocessed_file={document.preprocessed_file}")
+        logger.info(f"Supabase paths: original={document.supabase_original_path}, processed={document.supabase_processed_path}")
+        
         gemini_service = GeminiService()
         storage_service = get_storage_service()
         
-        # Get image path or download from Supabase
-        if document.storage_type == 'supabase':
+        # Auto-detect storage type based on available paths
+        has_supabase_paths = bool(document.supabase_processed_path or document.supabase_original_path)
+        has_local_paths = bool(
+            (document.preprocessed_file and hasattr(document.preprocessed_file, 'path') and document.preprocessed_file.path) or
+            (document.original_file and hasattr(document.original_file, 'path') and document.original_file.path)
+        )
+        
+        logger.info(f"Auto-detect: has_supabase_paths={has_supabase_paths}, has_local_paths={has_local_paths}")
+        
+        # Get image path - prefer Supabase if available, then try local
+        if has_supabase_paths:
             # Download file from Supabase to temp location for analysis
             try:
                 # Prefer processed file, fallback to original
                 supabase_path = document.supabase_processed_path or document.supabase_original_path
                 
-                if not supabase_path:
-                    raise ValueError("No Supabase path found for document")
+                logger.info(f"Downloading from Supabase: {supabase_path}")
                 
                 # Download file bytes from Supabase
                 file_bytes = storage_service.download_file(supabase_path)
@@ -990,10 +1019,15 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
                 raise ValueError(f"Cannot access document from Supabase: {e}")
         else:
             # Use local file path
-            image_path = document.preprocessed_file.path if document.preprocessed_file else document.original_file.path
+            if document.preprocessed_file and hasattr(document.preprocessed_file, 'path') and document.preprocessed_file.path:
+                image_path = document.preprocessed_file.path
+            elif document.original_file and hasattr(document.original_file, 'path') and document.original_file.path:
+                image_path = document.original_file.path
+            else:
+                raise ValueError(f"No local file path available for document {document.id}. Storage type: {document.storage_type}")
         
-        # Track if we need to cleanup temp file
-        temp_file_path = image_path if document.storage_type == 'supabase' else None
+        # Track if we need to cleanup temp file (only if downloaded from Supabase)
+        temp_file_path = image_path if has_supabase_paths else None
         
         try:
             # Get analysis from Gemini
@@ -1001,7 +1035,12 @@ class AadhaarDocumentViewSet(viewsets.ModelViewSet):
             
             # Update metadata with analysis results
             metadata.full_text = analysis.get('full_text', '')
-            metadata.aadhaar_number = analysis.get('aadhaar_number')
+            
+            # Clean Aadhaar number - remove spaces and hyphens to fit in 12-char field
+            aadhaar_num = analysis.get('aadhaar_number', '')
+            if aadhaar_num:
+                aadhaar_num = str(aadhaar_num).replace(' ', '').replace('-', '')[:12]
+            metadata.aadhaar_number = aadhaar_num if aadhaar_num else None
             metadata.name = analysis.get('name')
             metadata.date_of_birth = analysis.get('date_of_birth')
             metadata.gender = analysis.get('gender')

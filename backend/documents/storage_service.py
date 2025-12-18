@@ -133,7 +133,7 @@ class StorageService:
     
     def get_file_url(self, storage_path: str, signed: bool = True, expires_in: int = 3600) -> str:
         """
-        Get URL for a file
+        Get URL for a file with caching for signed URLs
         
         Args:
             storage_path: Path to the file
@@ -144,9 +144,25 @@ class StorageService:
             URL string
         """
         if self.use_supabase:
-            # Use signed URLs by default for private buckets
             if signed:
-                return self.supabase_storage.get_signed_url(storage_path, expires_in)
+                # Cache signed URLs to avoid repeated HTTP requests
+                # Cache for half the expiry time to ensure URLs don't expire while in cache
+                from django.core.cache import cache
+                
+                cache_key = f"signed_url:{storage_path}"
+                cached_url = cache.get(cache_key)
+                
+                if cached_url:
+                    return cached_url
+                
+                # Generate new signed URL
+                url = self.supabase_storage.get_signed_url(storage_path, expires_in)
+                
+                # Cache for half the expiry time (default: 30 minutes for 1 hour expiry)
+                cache_timeout = expires_in // 2
+                cache.set(cache_key, url, cache_timeout)
+                
+                return url
             return self.supabase_storage.get_public_url(storage_path)
         else:
             return f"{settings.MEDIA_URL}{storage_path}"

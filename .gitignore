@@ -38,6 +38,7 @@ env/
 ENV/
 .env.local
 .env.*.local
+.venv_aadhar
 
 # ----------------
 # Django

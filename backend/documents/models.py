@@ -67,29 +67,41 @@ class AadhaarDocument(models.Model):
     def __str__(self):
         return f"{self.file_name} - {self.status}"
     
-    def get_original_url(self) -> str:
-        """Get URL for original file (handles both local and Supabase storage)"""
+    def get_original_url(self, signed: bool = True) -> str:
+        """Get URL for original file (handles both local and Supabase storage)
+        
+        Args:
+            signed: If True (default), generate a signed URL for security.
+        """
         if self.storage_type == 'supabase' and self.supabase_original_path:
             from .storage_service import get_storage_service
-            return get_storage_service().get_file_url(self.supabase_original_path)
+            return get_storage_service().get_file_url(self.supabase_original_path, signed=signed)
         elif self.original_file:
             return self.original_file.url
         return ''
     
-    def get_processed_url(self) -> str:
-        """Get URL for processed file"""
+    def get_processed_url(self, signed: bool = True) -> str:
+        """Get URL for processed file
+        
+        Args:
+            signed: If True (default), generate a signed URL for security.
+        """
         if self.storage_type == 'supabase' and self.supabase_processed_path:
             from .storage_service import get_storage_service
-            return get_storage_service().get_file_url(self.supabase_processed_path)
+            return get_storage_service().get_file_url(self.supabase_processed_path, signed=signed)
         elif self.preprocessed_file:
             return self.preprocessed_file.url
         return ''
     
-    def get_thumbnail_url(self) -> str:
-        """Get URL for thumbnail"""
+    def get_thumbnail_url(self, signed: bool = True) -> str:
+        """Get URL for thumbnail
+        
+        Args:
+            signed: If True (default), generate a signed URL for security.
+        """
         if self.storage_type == 'supabase' and self.supabase_thumbnail_path:
             from .storage_service import get_storage_service
-            return get_storage_service().get_file_url(self.supabase_thumbnail_path)
+            return get_storage_service().get_file_url(self.supabase_thumbnail_path, signed=signed)
         elif self.thumbnail:
             return self.thumbnail.url
         return ''
